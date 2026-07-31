@@ -6,8 +6,7 @@
        → your code is saved and safe; the door to going live
 - [x] 3. Vercel — live at https://life-v3-seven.vercel.app        RECOMMENDED
        → your dashboard LIVE at your own URL; every push auto-updates it
-- [ ] 4. Supabase — new project, run supabase/sync.sql +
-       tiles.sql, add the two NEXT_PUBLIC keys                     OPTIONAL
+- [x] 4. Supabase — sync.sql + tiles.sql run, keys live on Vercel   OPTIONAL
        → memory: data follows you across devices instead of one browser;
          unlocks the connector + sweeps
 - [ ] 5. Phone — open your live URL, Share → Add to Home Screen    OPTIONAL
