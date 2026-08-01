@@ -96,6 +96,7 @@
 const FEEL=[['Wrecked',25],['Rough',45],['OK',65],['Good',82],['Great',95]];
 let store={};
 let draft={sleepHours:7.5,feel:null};
+let whoopConnected=false;
 function persist(){window.Vitality.save(store)}
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
@@ -135,7 +136,10 @@ function render(){
   const line=trend();
   document.getElementById('app').innerHTML=
     '<div class="hero"><div class="rec '+tn+'">'+(rec!=null?rec+'%':'—')+'</div></div>'
-    +'<div class="whoop"><button class="whoopBtn" data-whoop><span class="dot"></span>Connect WHOOP</button></div>'
+    +'<div class="whoop">'+(whoopConnected
+      ?'<div class="whoopBtn" style="cursor:default"><span class="dot"></span>WHOOP connected</div>'
+      :'<button class="whoopBtn" data-whoop><span class="dot"></span>Connect WHOOP</button>')+'</div>'
+    +(whoopConnected?'<p class="whoopNote">Recovery pulls in <b>automatically</b> from WHOOP each time you open this. The check-in below still fills in any day WHOOP has not scored.</p>':'')
     +'<div class="card">'
       +'<div class="sleepRow"><button class="step" data-sleep="-0.5">−</button><span class="sleepVal">'+fmtSleep(draft.sleepHours)+'</span><button class="step" data-sleep="0.5">+</button></div>'
       +'<div class="feelRow" style="margin-top:20px">'+FEEL.map((f)=>'<button class="feel'+(draft.feel===f[1]?' on':'')+'" data-feel="'+f[1]+'">'+f[0]+'</button>').join('')+'</div>'
@@ -145,6 +149,7 @@ function render(){
 }
 
 document.addEventListener('click',e=>{
+  if(e.target.closest('[data-whoop]')){ window.Vitality.connectWhoop(); return; }
   const s=e.target.closest('[data-sleep]');
   if(s){draft.sleepHours=Math.max(0,Math.min(14,draft.sleepHours+parseFloat(s.getAttribute('data-sleep'))));render();return}
   const f=e.target.closest('[data-feel]');
@@ -157,13 +162,29 @@ document.addEventListener('click',e=>{
   }
 });
 
-if(!window.Vitality){window.Vitality={save:function(d){try{localStorage.setItem('v:prev:vitals',JSON.stringify(d));}catch(e){}return Promise.resolve(true);},load:function(){try{return Promise.resolve(JSON.parse(localStorage.getItem('v:prev:vitals')||'{}'));}catch(e){return Promise.resolve({});}},read:function(){return Promise.resolve(null);}};}
+if(!window.Vitality){window.Vitality={save:function(d){try{localStorage.setItem('v:prev:vitals',JSON.stringify(d));}catch(e){}return Promise.resolve(true);},load:function(){try{return Promise.resolve(JSON.parse(localStorage.getItem('v:prev:vitals')||'{}'));}catch(e){return Promise.resolve({});}},read:function(){return Promise.resolve(null);},connectWhoop:function(){return Promise.resolve(false);},whoopSync:function(){return Promise.resolve({connected:false,synced:0,todayRecovery:null});}};}
+
+/* Fire-and-forget: refresh token + pull real recovery if WHOOP is connected.
+   No-op (fast) if it never was — see /api/whoop/sync. */
+async function checkWhoop(){
+  try{
+    const res=await window.Vitality.whoopSync();
+    whoopConnected=!!(res&&res.connected);
+    if(res&&res.connected&&typeof res.todayRecovery==='number'){
+      const k=todayKey(),prev=store[k]||{};
+      store[k]=Object.assign({},prev,{whoopRecovery:res.todayRecovery});
+    }
+  }catch(e){ whoopConnected=false; }
+  render();
+}
+
 (async()=>{
   const d=await window.Vitality.load();
   store=(d&&typeof d==='object'&&!Array.isArray(d))?d:{};
   const t=todays();
   if(t){ if(typeof t.sleepHours==='number')draft.sleepHours=t.sleepHours; if(typeof t.feel==='number')draft.feel=t.feel; }
   render();
+  checkWhoop();
 })();
 </script>
 </body>

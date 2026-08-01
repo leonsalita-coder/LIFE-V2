@@ -36,6 +36,8 @@ const SHIM = `<script>
     else if (m.type === 'getInsight:error') p.reject(new Error(m.reason || 'insight_failed'));
     else if (m.type === 'addProgressPhoto:result') p.resolve({ url: m.url, analysis: m.analysis });
     else if (m.type === 'addProgressPhoto:error') p.reject(new Error(m.reason || 'photo_failed'));
+    else if (m.type === 'connectWhoop:result') p.resolve(true);
+    else if (m.type === 'whoopSync:result') p.resolve(m.result);
   });
   function call(type, extra) {
     return new Promise(function (resolve, reject) {
@@ -64,6 +66,8 @@ const SHIM = `<script>
     generateWorkout: function (opts) { return call('generateWorkout', opts || {}); },
     getInsight: function (opts) { return call('getInsight', opts || {}); },
     addProgressPhoto: function (opts) { return call('addProgressPhoto', opts || {}); },
+    connectWhoop: function () { return call('connectWhoop', {}); },
+    whoopSync: function () { return call('whoopSync', {}); },
     read: function (slot) { return call('read', { slot: slot }); },
     report: function (stream) {
       parent.postMessage({ source: 'vitality-tile', type: 'report', stream: stream }, '*');

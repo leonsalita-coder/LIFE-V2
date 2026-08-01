@@ -250,6 +250,32 @@ export function useTileHost(
         return
       }
 
+      // WHOOP connect — a sealed tile can't navigate itself (sandbox has no
+      // allow-top-navigation), and a popup opened from this async handler
+      // would get blocked by most browsers anyway. So the host navigates the
+      // WHOLE tab to the OAuth start; WHOOP sends it back to /api/whoop/callback,
+      // which redirects to '/' when done.
+      if (msg.type === 'connectWhoop') {
+        src.postMessage({ source: 'vitality-host', type: 'connectWhoop:result', id: msg.id }, '*')
+        window.location.href = '/api/whoop/authorize'
+        return
+      }
+
+      // WHOOP sync — refreshes the access token if stale and pulls the
+      // athlete's real recovery scores into the 'vitals' row. Safe to call on
+      // every Vitals mount: if WHOOP was never connected it just reports
+      // { connected: false } without touching WHOOP's API at all.
+      if (msg.type === 'whoopSync') {
+        try {
+          const r = await fetch('/api/whoop/sync', { method: 'POST' })
+          const j = await r.json()
+          src.postMessage({ source: 'vitality-host', type: 'whoopSync:result', id: msg.id, result: j }, '*')
+        } catch {
+          src.postMessage({ source: 'vitality-host', type: 'whoopSync:result', id: msg.id, result: { connected: false, synced: 0, todayRecovery: null } }, '*')
+        }
+        return
+      }
+
       // Cross-tile READ — the host hands a tile another slot's saved data so
       // tiles can react to each other client-side (e.g. Peak reshaping from the
       // Vitals recovery) with no /sweep and no connector. Read-only, the user's
