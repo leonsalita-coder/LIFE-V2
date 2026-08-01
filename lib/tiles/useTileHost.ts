@@ -185,6 +185,29 @@ export function useTileHost(
         return
       }
 
+      // Post-session note — routed through /api/coach/note so the Anthropic
+      // key stays server-side. A compact digest in, one short observation
+      // out (the mentor's "noticer" role, automated for Train). Also a real
+      // paid call — the tile only fires it once per finished session.
+      if (msg.type === 'getInsight') {
+        try {
+          const r = await fetch('/api/coach/note', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ goal: msg.goal, digest: msg.digest }),
+          })
+          const j = await r.json()
+          if (typeof j?.note === 'string') {
+            src.postMessage({ source: 'vitality-host', type: 'getInsight:result', id: msg.id, note: j.note }, '*')
+          } else {
+            src.postMessage({ source: 'vitality-host', type: 'getInsight:error', id: msg.id, reason: String(j?.error || 'no_data') }, '*')
+          }
+        } catch {
+          src.postMessage({ source: 'vitality-host', type: 'getInsight:error', id: msg.id, reason: 'fetch_failed' }, '*')
+        }
+        return
+      }
+
       // Cross-tile READ — the host hands a tile another slot's saved data so
       // tiles can react to each other client-side (e.g. Peak reshaping from the
       // Vitals recovery) with no /sweep and no connector. Read-only, the user's

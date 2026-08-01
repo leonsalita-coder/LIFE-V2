@@ -234,6 +234,7 @@
   .freshbtn { display:block; margin: 13px auto 0; background:none; border:none; color: var(--muted); font-family: var(--sans); font-size:12.5px; font-weight:500; cursor:pointer; padding:8px 12px; border-radius:9px; transition: color .18s; }
   .freshbtn:hover { color: var(--text); } .freshbtn.arm { color: var(--fail); font-weight:600; }
   .store-note { text-align:center; color: var(--muted); font-size:11.5px; font-weight:500; margin-top:6px; opacity:.85; }
+  .insightBox { margin-top:12px; text-align:center; font-family: var(--serif); font-style:italic; font-size:13.5px; color: var(--mint); line-height:1.5; }
 
   /* ── popups (history / form / swap / tune / overflow menu) ─────────── */
   .scrim { position:fixed; inset:0; z-index:60; display:flex; align-items:flex-start; justify-content:center; padding: max(20px, env(safe-area-inset-top)) 14px 40px; overflow-y:auto; background: rgba(0,0,0,.28); opacity:0; animation: scrimIn .18s var(--ease) forwards; }
@@ -544,7 +545,7 @@ function renderProgress(){
 }
 function renderBody(){
   const wrap=$('#exwrap'); const session=curSession();
-  if(session.off){ wrap.innerHTML = restPanelHTML('Today is a rest day.', "You marked today off. Tap below to bring your session back.", true); wireRestPanel(); $('#finishBtn').parentElement.style.display='none'; $('#warmupSlot').innerHTML=''; $('#cooldownSlot').innerHTML=''; return; }
+  if(session.off){ wrap.innerHTML = restPanelHTML('Today is a rest day.', "You marked today off. Tap below to bring your session back.", true); wireRestPanel(); $('#finishBtn').parentElement.style.display='none'; $('#warmupSlot').innerHTML=''; $('#cooldownSlot').innerHTML=''; const ib=$('#insightBox'); if(ib) ib.style.display='none'; return; }
   $('#finishBtn').parentElement.style.display='';
   renderChecklist('#warmupSlot', session.warmup, 'warm', 'Warm-up');
   wrap.innerHTML='';
@@ -587,9 +588,48 @@ function renderFinish(session){
   else { btn.textContent='finish session'; btn.classList.remove('locked'); btn.disabled = t.logged===0; }
   btn.onclick=()=>{
     STATE.submitted=!STATE.submitted;
-    if(STATE.submitted){ STATE.finishedDates=STATE.finishedDates||[]; if(!STATE.finishedDates.includes(today)) STATE.finishedDates.push(today); }
+    if(STATE.submitted){
+      STATE.finishedDates=STATE.finishedDates||[]; if(!STATE.finishedDates.includes(today)) STATE.finishedDates.push(today);
+      if(!session.insight) fetchInsight(session);
+    }
     renderFinish(session); renderStreak(); saveState();
   };
+  renderInsight(session);
+}
+/* ---- post-session note: one honest observation, computed once per
+   finished session and cached — this is the mentor's "noticer" role,
+   automated for Train. Silent on failure; it's a bonus, not core flow. */
+function buildInsightDigest(session){
+  const lines=[];
+  lines.push('Streak: '+currentStreak()+' consecutive day(s).');
+  const t=sessionTotals(session);
+  lines.push('Today: '+t.logged+'/'+t.total+' sets logged across '+session.ex.length+' exercise(s).');
+  session.ex.forEach(e=>{
+    const h=histFor(e).filter(s=>!s.off);
+    const misses=e.log.filter(s=>s&&s.fail).length;
+    const pr=exHasPR(e)?' (PR today)':'';
+    if(h.length>=2){
+      const delta=r1(h[h.length-1].kg-h[0].kg);
+      lines.push('- '+e.name+': '+h.length+' sessions on record, '+(delta>=0?'+':'')+delta+' '+STATE.unit+' over that span, '+misses+' missed set(s) today'+pr+'.');
+    } else {
+      lines.push('- '+e.name+': first time logging this, '+misses+' missed set(s) today'+pr+'.');
+    }
+  });
+  return lines.join('\n');
+}
+async function fetchInsight(session){
+  try{
+    const digest=buildInsightDigest(session);
+    const note=await window.Vitality.getInsight({ goal:ATHLETE_GOAL, digest });
+    session.insight={ date:today, text:(typeof note==='string'&&note.trim())?note.trim():null };
+  }catch(err){ session.insight={ date:today, text:null }; }
+  saveState(); renderInsight(session);
+}
+function renderInsight(session){
+  let el=$('#insightBox');
+  if(!session.insight || !session.insight.text){ if(el) el.remove(); return; }
+  if(!el){ el=document.createElement('div'); el.id='insightBox'; el.className='insightBox'; $('#finishBtn').parentElement.insertAdjacentElement('afterend', el); }
+  el.style.display=''; el.textContent=session.insight.text;
 }
 function renderStreak(){
   const el=$('#streakPill'); if(!el) return;
