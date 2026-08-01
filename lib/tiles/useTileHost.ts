@@ -161,21 +161,21 @@ export function useTileHost(
         return
       }
 
-      // Smart workout generator — routed through /api/coach/workout so the
-      // Anthropic key stays server-side. Goal + equipment + time + day type
-      // in, a full session (same shape as classify) out. Also a real paid
-      // call — the tile only fires it on an explicit "generate" tap.
+      // Conversational workout generator — routed through /api/coach/workout
+      // (POST, not GET: it carries the whole chat, not a few flat fields) so
+      // the Anthropic key stays server-side. Returns either a clarifying
+      // question or a full session; the tile decides which from `kind`.
+      // Also a real paid call — only fires when the athlete sends a message.
       if (msg.type === 'generateWorkout') {
-        const qs = new URLSearchParams()
-        if (msg.goal) qs.set('goal', String(msg.goal).slice(0, 200))
-        if (msg.dayType) qs.set('dayType', String(msg.dayType).slice(0, 40))
-        if (msg.equipment) qs.set('equipment', String(msg.equipment).slice(0, 200))
-        if (msg.minutes) qs.set('minutes', String(msg.minutes))
         try {
-          const r = await fetch('/api/coach/workout?' + qs.toString())
+          const r = await fetch('/api/coach/workout', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ goal: msg.goal, messages: msg.messages }),
+          })
           const j = await r.json()
-          if (Array.isArray(j?.exercises)) {
-            src.postMessage({ source: 'vitality-host', type: 'generateWorkout:result', id: msg.id, exercises: j.exercises }, '*')
+          if (j?.kind === 'question' || j?.kind === 'workout') {
+            src.postMessage({ source: 'vitality-host', type: 'generateWorkout:result', id: msg.id, result: j }, '*')
           } else {
             src.postMessage({ source: 'vitality-host', type: 'generateWorkout:error', id: msg.id, reason: String(j?.error || 'no_data') }, '*')
           }

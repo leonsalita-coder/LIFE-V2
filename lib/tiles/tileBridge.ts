@@ -30,7 +30,7 @@ const SHIM = `<script>
     else if (m.type === 'stock:error') p.reject(new Error(m.reason || 'stock_failed'));
     else if (m.type === 'classify:result') p.resolve(m.exercise);
     else if (m.type === 'classify:error') p.reject(new Error(m.reason || 'classify_failed'));
-    else if (m.type === 'generateWorkout:result') p.resolve(m.exercises);
+    else if (m.type === 'generateWorkout:result') p.resolve(m.result);
     else if (m.type === 'generateWorkout:error') p.reject(new Error(m.reason || 'generate_failed'));
   });
   function call(type, extra) {

@@ -8,11 +8,10 @@
 
 <style>
   /* ====================================================================
-     Vitality workout logger — Push / Pull / Legs, fully self-contained.
-     Extracted verbatim from the Logger Design Lab (chrome stripped).
-     The whole Vitality look — fonts + mountains/glass/particles backdrop —
-     is baked in below, so it renders with NO external file. Mint accent
-     (#6EE7B7); amber (#f59e0b) ONLY for a PR / your best.
+     Vitality workout logger — one session per real day, fully self-
+     contained. The whole Vitality look — fonts + mountains/glass/particles
+     backdrop — is baked in below, so it renders with NO external file.
+     Mint accent (#6EE7B7); amber (#f59e0b) ONLY for a PR / your best.
      ================================================================= */
   :root {
     /* Vitality tokens — reskin of the Patron logger */
@@ -63,14 +62,7 @@
   .eyebrow { font-family: var(--vt-mono); text-transform: uppercase; letter-spacing: .2em; font-size: 11px; font-weight: 600; color: var(--muted); }
   .streakPill { font-family: var(--vt-mono); text-transform: none; letter-spacing: .02em; font-size: 11px; font-weight: 600; color: var(--gold); background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); border-radius: 999px; padding: 4px 10px; display:none; }
 
-  /* day tabs */
-  .daytabs { display:flex; gap:3px; background: var(--row); border:1px solid var(--line); border-radius:12px; padding:4px; margin-top:14px; }
-  .daytab { flex:1; background:none; border:none; color:var(--muted); font-family:var(--sans); font-size:13px; font-weight:600; padding:9px 6px; border-radius:9px; cursor:pointer; transition: color .2s, background .25s; }
-  .daytab.on { background: var(--mint); color: var(--ink); }
-  .daytab .tnum { font-variant-numeric: tabular-nums; opacity:.6; font-size:10px; margin-left:5px; }
-  .daytab.on .tnum { opacity:.55; }
-
-  /* dotted per-exercise progress for the active day */
+  /* dotted per-exercise progress for today */
   .daydots { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; margin-top:16px; min-height:9px; }
   .daydots .dd { width:8px; height:8px; border-radius:50%; border:1.5px solid var(--hair); transition: background .3s, border-color .3s; }
   .daydots .dd.done { background: var(--mint); border-color: var(--mint); }
@@ -80,8 +72,6 @@
   /* day header */
   .dayhead { display:flex; align-items:flex-end; gap:12px; margin-top:14px; }
   .daytitle { font-family: var(--serif); font-style:italic; font-weight:500; font-size:33px; line-height:1; letter-spacing:-0.01em; }
-  .daypill { font-family: var(--vt-mono); font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; padding:4px 9px; border-radius:999px; border:1px solid var(--mint); color:var(--mint); align-self:center; margin-bottom:4px; }
-  .daypill.vol { border-color: var(--hair); color: var(--muted-strong); }
   .moonbtn { margin-left:auto; align-self:center; margin-bottom:3px; display:inline-flex; align-items:center; gap:7px; background:none; border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:7px 12px; font-size:12px; font-weight:500; cursor:pointer; transition: color .18s, border-color .18s, background .18s; }
   .moonbtn:hover { color: var(--muted-strong); border-color: var(--hair); }
   .moonbtn.on { color: var(--mint); border-color: var(--mint); background: rgba(110,231,183,.06); }
@@ -308,13 +298,18 @@
   .swapItem:hover { border-color: var(--mint); background: rgba(110,231,183,.05); }
   .swapItem .nm { font-family: var(--serif); font-style:italic; font-size:17px; }
   .swapItem .mu { font-family: var(--vt-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color: var(--muted); margin-top:3px; }
-  .swapItem.genEquip.on { border-color: var(--mint); background: rgba(110,231,183,.08); }
-  .swapItem.genEquip.on .nm { color: var(--mint); }
   .swapItem .arr { margin-left:auto; color: var(--muted); } .swapItem:hover .arr { color: var(--mint); }
   .swapItem .arr svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
   .searchRow { display:flex; align-items:center; gap:10px; border:1px solid var(--hair); border-radius:12px; padding:11px 13px; }
   .searchRow svg { width:16px; height:16px; fill:none; stroke: var(--muted); stroke-width:1.6; flex:none; }
   .searchRow input { flex:1; background:none; border:none; outline:none; color: var(--text); font:inherit; font-size:15px; }
+
+  /* generate: the conversation */
+  .chatLog { max-height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-top:16px; }
+  .chatLog:empty { display:none; }
+  .chatMsg { padding:10px 13px; border-radius:14px; font-size:14px; line-height:1.45; max-width:88%; }
+  .chatMsg.user { align-self:flex-end; background:var(--mint); color:var(--ink); }
+  .chatMsg.ai { align-self:flex-start; background:var(--row); border:1px solid var(--line); color:var(--text); }
 
   /* tune popup */
   .field { display:flex; align-items:center; justify-content:space-between; padding:16px 0; border-bottom:1px solid var(--line); }
@@ -336,6 +331,7 @@
   .pbtn.ghost { background:none; border:1px solid var(--hair); color: var(--muted); }
   .pbtn.ghost:hover { color: var(--text); border-color: var(--muted); }
   .pbtn.danger { background: rgba(224,106,108,.12); border:1px solid var(--fail); color: #e88a8c; }
+  .pbtn:disabled { opacity:.4; cursor:default; }
 
   /* overflow menu */
   .menuPop { position:absolute; z-index:70; min-width:180px; background: var(--bg); border:1px solid var(--hair); border-radius:13px; padding:6px; box-shadow:0 18px 50px rgba(0,0,0,.6); opacity:0; transform: translateY(-6px) scale(.97); animation: popIn .22s var(--spring) forwards; }
@@ -385,13 +381,11 @@
 <div class="starterTag">✦ starter — the value is what you build · the videos show how</div>
   <div class="sheet" id="sheet">
     <div class="eyebrow" style="display:flex;align-items:center;justify-content:space-between">Today's session<span id="streakPill" class="streakPill"></span></div>
-    <div class="daytabs" id="daytabs"></div>
     <div class="daydots" id="daydots"></div>
     <div class="dayhead">
-      <h1 class="daytitle" id="daytitle">Push</h1>
-      <span class="daypill" id="daypill">Heavy</span>
-      <button class="moonbtn" id="genbtn" title="Generate today's workout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>generate</span></button>
-      <button class="moonbtn" id="moonbtn" title="Mark the whole day a rest day"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>rest day</span></button>
+      <h1 class="daytitle" id="daytitle">Today</h1>
+      <button class="moonbtn" id="genbtn" title="Talk to your coach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>generate</span></button>
+      <button class="moonbtn" id="moonbtn" title="Mark today a rest day"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>rest day</span></button>
     </div>
     <div class="progress" id="progress"><div class="ptrack"><div class="pfill" id="pfill"></div></div><div class="plabel" id="plabel"></div></div>
     <div class="wcSection" id="warmupSlot"></div>
@@ -414,8 +408,9 @@
 </div>
 <script>
 /* ====================================================================
-   THE LOGGER. (Verbatim from the Logger Design Lab.)
-   Push / Pull / Legs program + per-set logging, fully self-contained.
+   THE LOGGER. One session per real calendar day — no fixed splits, no
+   pre-filled program. Content only arrives by generating with the coach,
+   typing an exercise for the AI to classify, or loading a saved template.
    ================================================================= */
 
 /* ---- date helpers (local time, never toISOString) ------------------ */
@@ -424,111 +419,30 @@ const pad = n => String(n).padStart(2,'0');
 const ymd = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 function getLocalDateKey(d=new Date()){ return ymd(d); }
 const today = getLocalDateKey();
-function dayKeyAgo(n){ const d=new Date(); d.setDate(d.getDate()-n); return ymd(d); }
 function fmtDate(k){ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function fmtDayTitle(){ const [y,m,d]=today.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}); }
 function daysAgo(k){ const [y,m,d]=k.split('-').map(Number); const t=new Date(); t.setHours(0,0,0,0); return Math.round((t-new Date(y,m-1,d))/DAY); }
 const r1 = n => Math.round(n*10)/10;
 const ROMAN = ['i','ii','iii','iv','v','vi','vii','viii','ix','x'];
 function mmss(s){ return Math.floor(s/60)+':'+pad(s%60); }
-const TIER_LABEL = { 1:'tier 1', 2:'tier 2', 3:'tier 3', ab:'abs' };
-
-/* ---- the program: Luke's real Push / Pull / Legs split ------------- */
-/* Structure (which lifts, tier, target sets x reps) is real. The kg are a
-   realistic starting prescription; a real user retunes them.            */
-const PROGRAM = {
-  push: { name:'Push', type:'Heavy', exercises:[
-    { id:'bench_bb',        name:'Barbell bench',        tier:1, sets:4, reps:6,  kg:85,   rest:180 },
-    { id:'standing_ohp',    name:'Standing barbell OHP', tier:1, sets:3, reps:8,  kg:50,   rest:150 },
-    { id:'incl_db_press',   name:'Incline DB press',     tier:2, sets:3, reps:10, kg:32.5, perHand:true, rest:120 },
-    { id:'cable_fly',       name:'Cable chest fly',      tier:3, sets:3, reps:12, kg:18,   rest:75  },
-    { id:'cable_lat_raise', name:'Cable lateral raise',  tier:3, sets:4, reps:12, kg:9,    rest:60  },
-    { id:'tri_pushdown',    name:'Tricep rope pushdown', tier:3, sets:3, reps:12, kg:27.5, rest:75  },
-    { id:'oh_tri_ext',      name:'Overhead cable tri ext', tier:3, sets:3, reps:12, kg:22.5, rest:75 },
-  ]},
-  pull: { name:'Pull', type:'Heavy', exercises:[
-    { id:'conv_dl',         name:'Conventional deadlift', tier:1, sets:3, reps:5,  kg:140, rest:210 },
-    { id:'pullup_weighted', name:'Weighted pull-ups',     tier:1, sets:4, reps:8,  kg:15,  rest:150 },
-    { id:'bb_row',          name:'Barbell row',           tier:1, sets:3, reps:8,  kg:80,  rest:150 },
-    { id:'lat_pulldown',    name:'Lat pulldown',          tier:2, sets:3, reps:10, kg:64,  rest:120 },
-    { id:'face_pull',       name:'Cable face pull',       tier:3, sets:3, reps:15, kg:22.5, rest:60 },
-    { id:'bb_curl',         name:'Barbell curl',          tier:2, sets:3, reps:10, kg:35,  rest:75  },
-    { id:'hammer_curl',     name:'Hammer curl',           tier:3, sets:3, reps:12, kg:16,  perHand:true, rest:60 },
-  ]},
-  legs: { name:'Legs', type:'Heavy', exercises:[
-    { id:'back_squat',      name:'Barbell back squat',    tier:1, sets:4, reps:6,  kg:120, rest:210 },
-    { id:'rdl',             name:'Romanian deadlift',     tier:1, sets:3, reps:8,  kg:100, rest:150 },
-    { id:'leg_press',       name:'Leg press',             tier:2, sets:3, reps:10, kg:200, rest:120 },
-    { id:'lying_leg_curl',  name:'Lying leg curl',        tier:3, sets:3, reps:12, kg:50,  rest:75  },
-    { id:'leg_ext',         name:'Leg extension',         tier:3, sets:3, reps:12, kg:60,  rest:75  },
-    { id:'calf_raise',      name:'Calf raise',            tier:3, sets:4, reps:12, kg:90,  rest:60  },
-    { id:'hang_leg_raise',  name:'Hanging leg raise',     tier:'ab', sets:3, reps:12, kg:0, rest:60 },
-  ]},
-  rest: { name:'Rest', restDay:true, exercises:[] },
-};
-const ORDER = ['push','pull','legs','rest'];
+const TIER_LABEL = { 1:'tier 1', 2:'tier 2', 3:'tier 3' };
 /* ---- the athlete's goal (written here by the mentor, same as weights.ts) - */
 const ATHLETE_GOAL = 'Become a peak athlete in taekwondo and soccer';
-const EQUIPMENT_OPTIONS = ['Bodyweight','Dumbbells','Resistance bands','Barbell','Machines','Kettlebells','Pull-up bar','Full gym'];
-const MINUTE_OPTIONS = [15,30,45,60];
-
-/* form reference + swap library (cues for the ⓘ button + swap options) */
-const LIB = {
-  bench_bb:{ equipment:'Barbell', primary:['Chest'], secondary:['Front delts','Triceps'], gist:'The barbell chest builder your push day is built around.', steps:['Unrack over your chest, shoulder blades pinned','Lower under control to the base of your sternum','Drive up and squeeze the chest at the top'], cues:['Lower slower than you press','Feet planted, glutes tight'] },
-  standing_ohp:{ equipment:'Barbell', primary:['Front delts'], secondary:['Triceps','Upper chest'], gist:'Vertical press for raw overhead strength.', steps:['Bar on your front delts, elbows under','Brace hard, press straight up','Shrug the bar overhead, head through'], cues:['Squeeze glutes, no lean back','Bar over mid-foot at lockout'] },
-  incl_db_press:{ equipment:'Dumbbell', primary:['Upper chest'], secondary:['Front delts'], gist:'Incline dumbbell press for the upper chest.', steps:['Bench at about 30 degrees','Dumbbells at shoulder width, palms forward','Press up over the chest, lower slow'], cues:['Lower slower than you press','Stay in full control'] },
-  cable_fly:{ equipment:'Cable', primary:['Chest'], secondary:[], gist:'Cable fly to finish the chest with constant tension.', steps:['Set the pulleys high, soft elbows','Sweep your hands together in front','Squeeze, return slow'], cues:['Soft elbows held still','Squeeze hard at the middle'] },
-  cable_lat_raise:{ equipment:'Cable', primary:['Side delts'], secondary:[], gist:'Cable lateral raise for round, capped shoulders.', steps:['Cable from the low pulley behind you','Raise to shoulder height, pinky led','Lower slow against the cable'], cues:['Lead with the elbow','No swinging, all delt'] },
-  tri_pushdown:{ equipment:'Cable', primary:['Triceps'], secondary:[], gist:'Rope pushdown for the triceps.', steps:['Rope at the high pulley, elbows pinned in','Push down and spread the rope','Return slow to a full stretch'], cues:['Upper arms by your sides','Only the forearms move'] },
-  oh_tri_ext:{ equipment:'Cable', primary:['Triceps'], secondary:[], gist:'Overhead extension for the long head of the triceps.', steps:['Rope overhead, lean in slightly','Extend until your arms are straight','Lower slow to a deep stretch'], cues:['Keep the stretch at the bottom','Elbows tight, point forward'] },
-  conv_dl:{ equipment:'Barbell', primary:['Posterior chain'], secondary:['Back','Glutes'], gist:'The deadlift, your pull day anchor.', steps:['Bar over mid-foot, shins to the bar','Brace, take the slack out','Push the floor away and stand tall'], cues:['Flat back, lats tight','Bar drags up your legs'] },
-  pullup_weighted:{ equipment:'Bodyweight', primary:['Lats'], secondary:['Biceps','Upper back'], gist:'Weighted pull-ups for back width.', steps:['Belt the plate, dead hang start','Pull your chest to the bar','Lower under full control'], cues:['Drive elbows down and back','Full stretch at the bottom'] },
-  bb_row:{ equipment:'Barbell', primary:['Upper back'], secondary:['Lats','Biceps'], gist:'Barbell row for a thick back.', steps:['Hinge to about 45 degrees, flat back','Row to your lower ribs','Lower slow, no jerking'], cues:['Lead with the elbows','Squeeze the back at the top'] },
-  lat_pulldown:{ equipment:'Cable', primary:['Lats'], secondary:['Biceps'], gist:'Lat pulldown for width when pull-ups are done.', steps:['Wide grip, chest up','Pull the bar to your collarbone','Control the bar back up'], cues:['Drive elbows to your hips','No leaning back'] },
-  face_pull:{ equipment:'Cable', primary:['Rear delts'], secondary:['Upper back'], gist:'Face pull for rear delts and healthy shoulders.', steps:['Rope at face height','Pull to your forehead, elbows high','Externally rotate at the end'], cues:['High elbows the whole way','Squeeze, then return slow'] },
-  bb_curl:{ equipment:'Barbell', primary:['Biceps'], secondary:['Forearms'], gist:'Barbell curl for biceps mass.', steps:['Shoulder-width grip, elbows pinned','Curl the bar up, no swing','Lower slow to a full stretch'], cues:['Elbows stay still by your sides','Control the negative'] },
-  hammer_curl:{ equipment:'Dumbbell', primary:['Biceps'], secondary:['Forearms'], gist:'Hammer curl for the brachialis and forearms.', steps:['Neutral grip, palms facing in','Curl up keeping the wrist neutral','Lower slow'], cues:['No swinging','Squeeze at the top'] },
-  back_squat:{ equipment:'Barbell', primary:['Quads'], secondary:['Glutes','Core'], gist:'The back squat, your leg day anchor.', steps:['Bar on your upper back, brace','Break at the hips and knees together','Drive up out of the hole'], cues:['Knees track over your toes','Chest up, deep brace'] },
-  rdl:{ equipment:'Barbell', primary:['Hamstrings'], secondary:['Glutes','Back'], gist:'Romanian deadlift for hamstrings and glutes.', steps:['Soft knees, bar on your thighs','Push your hips back, bar close','Stand tall, squeeze the glutes'], cues:['Feel the hamstring stretch','Flat back throughout'] },
-  leg_press:{ equipment:'Machine', primary:['Quads'], secondary:['Glutes'], gist:'Leg press to pile on quad volume.', steps:['Feet mid-platform, shoulder width','Lower to about 90 degrees','Press up without locking hard'], cues:['Heels down, knees tracking out','Controlled depth'] },
-  lying_leg_curl:{ equipment:'Machine', primary:['Hamstrings'], secondary:[], gist:'Lying leg curl to isolate the hamstrings.', steps:['Pad just above the heels','Curl up fully, squeeze','Lower slow, full stretch'], cues:['Hips stay down','Slow on the way down'] },
-  leg_ext:{ equipment:'Machine', primary:['Quads'], secondary:[], gist:'Leg extension to finish the quads.', steps:['Pad on your lower shins','Extend fully, squeeze at the top','Lower slow'], cues:['Pause at the top','No swinging the weight'] },
-  calf_raise:{ equipment:'Machine', primary:['Calves'], secondary:[], gist:'Calf raise for the lower legs.', steps:['Balls of the feet on the platform','Rise to a full contraction','Lower to a deep stretch'], cues:['Full range, top to bottom','Pause and squeeze the top'] },
-  hang_leg_raise:{ equipment:'Bodyweight', primary:['Abs'], secondary:['Hip flexors'], gist:'Hanging leg raise for the lower abs.', steps:['Dead hang, no swing','Raise your legs to parallel or higher','Lower slow, stay controlled'], cues:['Curl the pelvis up','No momentum'] },
-};
-const SWAPS = {
-  push:[ {id:'incl_bb_bench',name:'Incline barbell bench',tier:2},{id:'machine_chest',name:'Machine chest press',tier:2},{id:'dips_weighted',name:'Weighted dips',tier:2},{id:'db_shoulder_press',name:'DB shoulder press',tier:2,perHand:true},{id:'pec_deck',name:'Pec deck',tier:3} ],
-  pull:[ {id:'tbar_row',name:'T-bar row',tier:1},{id:'chinup',name:'Chin-ups',tier:1},{id:'seated_row',name:'Seated cable row',tier:2},{id:'db_curl',name:'Incline DB curl',tier:3,perHand:true},{id:'rear_delt_fly',name:'Rear delt fly',tier:3} ],
-  legs:[ {id:'hack_squat',name:'Hack squat',tier:1},{id:'front_squat',name:'Front squat',tier:1},{id:'bulgarian',name:'Bulgarian split squat',tier:2,perHand:true},{id:'good_morning',name:'Good morning',tier:2},{id:'seated_calf',name:'Seated calf raise',tier:3} ],
-  rest:[],
-};
-
 
 /* ---- build / load state ---------------------------------------------
-   Every day starts with an EMPTY exercise list. PROGRAM is kept only as
-   reference prescriptions for the "pick from library" list — nothing is
-   ever pre-filled. The board only gains exercises when you generate a
-   session, add one manually, or type a name for the AI to classify. */
+   ONE session, keyed by today's real date — rolls over to a fresh, empty
+   session automatically at midnight. Per-exercise history lives globally
+   (STATE.history, keyed by exercise id) so it survives being removed from
+   a session or regenerated on a different day. Nothing is ever pre-filled;
+   content only arrives via generate, typing a name for the AI, or a saved
+   template. */
 function buildState(){
-  const days = {};
-  ORDER.forEach(key=>{
-    const p = PROGRAM[key];
-    days[key] = { name:p.name, type:p.type||'', restDay:!!p.restDay, off:false,
-      warmup: p.restDay?[]:seedChecklist(DEFAULT_WARMUP[key]), cooldown: p.restDay?[]:seedChecklist(DEFAULT_COOLDOWN[key]),
-      ex: [] };
-  });
-  return { active:'push', unit:'kg', submitted:false, days, customLib:{}, finishedDates:[], genPrefs:{ equipment:['Barbell','Dumbbells','Machines'], minutes:45 }, templates:[] };
+  return {
+    unit:'lb', submitted:false,
+    session:{ date:today, off:false, warmup:[], cooldown:[], ex:[] },
+    history:{}, customLib:{}, finishedDates:[], templates:[]
+  };
 }
-/* ---- warm-up / cooldown defaults, seeded once per fresh day ------- */
-const DEFAULT_WARMUP = {
-  push: ['5 min easy cardio', 'Band pull-aparts × 15', 'Push-up ramp-up × 10'],
-  pull: ['5 min easy cardio', 'Scap pulls × 10', 'Light band rows × 15'],
-  legs: ['5 min easy cardio', 'Bodyweight squats × 15', 'Leg swings × 10/side'],
-};
-const DEFAULT_COOLDOWN = {
-  push: ['Chest doorway stretch · 30s/side', 'Triceps overhead stretch · 30s/side'],
-  pull: ['Lat stretch · 30s/side', 'Bicep wall stretch · 30s/side'],
-  legs: ['Quad stretch · 30s/side', 'Hamstring stretch · 30s/side', 'Calf wall stretch · 30s/side'],
-};
 function seedChecklist(list){ return (list||[]).map(text=>({text, done:false})); }
 /* ---- streak: consecutive days a session was finished --------------- */
 function currentStreak(){
@@ -538,22 +452,27 @@ function currentStreak(){
   while(set.has(ymd(d))){ n++; d.setDate(d.getDate()-1); }
   return n;
 }
-/* ---- AI-classified exercises (typed by name, not in the built-in library) -
-   Merged into LIB lookups everywhere below. Cached in STATE.customLib so a
-   name is only ever sent to the classifier once — it's a real paid call on
-   the user's own key. */
+/* ---- AI-classified exercises (typed by name, or from the coach) -----
+   Cached in STATE.customLib so a name is only ever sent to the model
+   once — it's a real paid call on the user's own key. */
 function slugify(name){
   const base = name.toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'exercise';
   let id = base, n = 1;
-  const taken = id2 => LIB[id2] || (STATE.customLib && STATE.customLib[id2]) || (curDay() && curDay().ex.some(x=>x.id===id2));
+  const taken = id2 => (STATE.customLib && STATE.customLib[id2]) || curSession().ex.some(x=>x.id===id2);
   while (taken(id)) { id = base + '_' + (++n); }
   return id;
 }
 function slugifyAvoiding(name, usedSet){
   const base = String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'exercise';
   let id=base, n=1;
-  while (LIB[id] || (STATE.customLib && STATE.customLib[id]) || usedSet.has(id)) { id = base+'_'+(++n); }
+  while ((STATE.customLib && STATE.customLib[id]) || usedSet.has(id)) { id = base+'_'+(++n); }
   return id;
+}
+/* ---- global per-exercise history, independent of any one session --- */
+function histFor(e){ STATE.history=STATE.history||{}; return STATE.history[e.id]||(STATE.history[e.id]=[]); }
+function lastKgFromHistory(id){
+  const h=(STATE.history&&STATE.history[id])||[]; const real=h.filter(s=>!s.off);
+  return real.length? real[real.length-1].kg : null;
 }
 /* STATE is filled by the async boot below once the dashboard bridge resolves. */
 let STATE = null;
@@ -561,19 +480,24 @@ let STATE = null;
 function saveState(){ if(window.Vitality && typeof window.Vitality.save==='function') window.Vitality.save(STATE); }
 
 /* ---- helpers on state -------------------------------------------- */
-const curDay = () => STATE.days[STATE.active];
-function sortedEx(day){ return day.ex.map((e,i)=>({e,i})).sort((a,b)=> (b.e.pinned-a.e.pinned)).map(o=>o.e); }
+function curSession(){
+  if(!STATE.session || STATE.session.date!==today){
+    Object.keys(restTimers).forEach(stopRest);
+    STATE.session = { date:today, off:false, warmup:[], cooldown:[], ex:[] };
+  }
+  return STATE.session;
+}
+function sortedEx(session){ return session.ex.map((e,i)=>({e,i})).sort((a,b)=> (b.e.pinned-a.e.pinned)).map(o=>o.e); }
 function prescription(e){ const kg = e.deload ? r1(e.kg*0.9) : e.kg; return { kg, reps:e.reps, sets:e.sets, rest:e.rest }; }
 function classifySet(e, idx){ const s=e.log[idx]; if(!s) return 'empty'; if(s.fail) return 'failed'; return 'done'; }
-function bestKg(e){ const real=e.hist.filter(s=>!s.off); return real.length? Math.max(...real.map(s=>s.kg)) : 0; }
-function bestKgExclToday(e){ const real=e.hist.filter(s=>!s.off && s.date!==today); return real.length? Math.max(...real.map(s=>s.kg)) : 0; }
-function bestRepsAt(e, kg){ const real=e.hist.filter(s=>!s.off && s.kg===kg); let m=0; real.forEach(s=>{ const t=Math.max(...s.sets.filter(x=>!x.fail).map(x=>x.r||0),0); if(t>m)m=t; }); return m; }
+function bestKgExclToday(e){ const real=histFor(e).filter(s=>!s.off && s.date!==today); return real.length? Math.max(...real.map(s=>s.kg)) : 0; }
+function bestRepsAt(e, kg){ const real=histFor(e).filter(s=>!s.off && s.kg===kg); let m=0; real.forEach(s=>{ const t=Math.max(...s.sets.filter(x=>!x.fail).map(x=>x.r||0),0); if(t>m)m=t; }); return m; }
 function isPR(e, idx){ const s=e.log[idx]; if(!s||s.fail) return false; const pb=bestKgExclToday(e); if(pb<=0) return false; if(s.kg>pb) return true; if(s.kg===pb && s.reps>bestRepsAt(e,pb)) return true; return false; }
 function exDoneCount(e){ return e.log.filter(s=>s&&!s.fail).length; }
 function exComplete(e){ return e.log.length>0 && e.log.every(s=>s&&!s.fail); }
 function exHasPR(e){ return e.log.some((s,i)=>isPR(e,i)); }
 function exHasMiss(e){ return e.log.some(s=>s&&s.fail); }
-function dayTotals(day){ if(day.off||day.restDay) return {logged:0,total:0}; let logged=0,total=0; day.ex.forEach(e=>{ total+=e.log.length; logged+=e.log.filter(s=>s&&(s.fail||true)&&s).length; }); return {logged,total}; }
+function sessionTotals(session){ if(session.off) return {logged:0,total:0}; let logged=0,total=0; session.ex.forEach(e=>{ total+=e.log.length; logged+=e.log.filter(s=>s).length; }); return {logged,total}; }
 
 /* ====================================================================
    RENDER
@@ -592,53 +516,45 @@ function dotsIcon(){ return '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="
 function gripIcon(){ return '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>'; }
 
 function render(){
-  renderTabs(); renderDots(); renderHead(); renderProgress(); renderBody(); renderStreak(); saveState();
-}
-function renderTabs(){
-  const el = $('#daytabs');
-  el.innerHTML = ORDER.map(k=>{ const d=STATE.days[k]; let suffix=''; if(!d.restDay){ const t=dayTotals(d); if(!d.off && t.total) suffix='<span class="tnum">'+t.logged+'/'+t.total+'</span>'; } return '<button class="daytab '+(k===STATE.active?'on':'')+'" data-k="'+k+'">'+d.name+suffix+'</button>'; }).join('');
-  el.querySelectorAll('.daytab').forEach(b=> b.onclick=()=>{ STATE.active=b.dataset.k; render(); });
+  renderDots(); renderHead(); renderProgress(); renderBody(); renderStreak(); saveState();
 }
 function renderDots(){
-  const el=$('#daydots'); const d=curDay();
-  if(d.restDay||d.off || !d.ex.length){ el.innerHTML=''; el.style.display='none'; return; }
+  const el=$('#daydots'); const session=curSession();
+  if(session.off || !session.ex.length){ el.innerHTML=''; el.style.display='none'; return; }
   el.style.display='flex';
-  el.innerHTML = d.ex.map(e=>{ let c='dd'; if(exComplete(e)){ c+= exHasPR(e)?' pr':' done'; } else if(exHasMiss(e)) c+=' miss'; return '<span class="'+c+'"></span>'; }).join('');
+  el.innerHTML = session.ex.map(e=>{ let c='dd'; if(exComplete(e)){ c+= exHasPR(e)?' pr':' done'; } else if(exHasMiss(e)) c+=' miss'; return '<span class="'+c+'"></span>'; }).join('');
 }
 function renderHead(){
-  const d=curDay();
-  $('#daytitle').textContent = d.name;
-  const pill=$('#daypill');
-  if(d.restDay){ pill.style.display='none'; } else { pill.style.display=''; pill.textContent=d.type||'Session'; pill.className='daypill'+(/vol/i.test(d.type)?' vol':''); }
+  const session=curSession();
+  $('#daytitle').textContent = fmtDayTitle();
   const moon=$('#moonbtn');
-  if(d.restDay){ moon.style.display='none'; } else { moon.style.display=''; moon.classList.toggle('on', d.off); }
-  moon.onclick=()=>{ d.off=!d.off; render(); };
+  moon.classList.toggle('on', session.off);
+  moon.onclick=()=>{ session.off=!session.off; render(); };
   const gen=$('#genbtn');
-  if(d.restDay){ gen.style.display='none'; } else { gen.style.display=''; }
+  gen.style.display = session.off ? 'none' : '';
   gen.onclick=()=> openGenerate();
 }
 function renderProgress(){
-  const d=curDay(); const prog=$('#progress');
-  if(d.restDay||d.off){ prog.style.display='none'; return; }
+  const session=curSession(); const prog=$('#progress');
+  if(session.off){ prog.style.display='none'; return; }
   prog.style.display='';
-  const t=dayTotals(d); const pct = t.total? Math.round(t.logged/t.total*100):0;
+  const t=sessionTotals(session); const pct = t.total? Math.round(t.logged/t.total*100):0;
   $('#pfill').style.width=pct+'%';
   $('#plabel').innerHTML = '<b>'+t.logged+'</b> of '+t.total+' logged';
 }
 function renderBody(){
-  const wrap=$('#exwrap'); const d=curDay();
-  if(d.restDay){ wrap.innerHTML = restPanelHTML('Rest day.', "Optional active recovery: a walk, light cardio, some mobility. The dashboard logs anything you do. Your lifting picks up tomorrow.", false); $('#finishBtn').parentElement.style.display='none'; $('#warmupSlot').innerHTML=''; $('#cooldownSlot').innerHTML=''; wireRestPanel(); return; }
+  const wrap=$('#exwrap'); const session=curSession();
+  if(session.off){ wrap.innerHTML = restPanelHTML('Today is a rest day.', "You marked today off. Tap below to bring your session back.", true); wireRestPanel(); $('#finishBtn').parentElement.style.display='none'; $('#warmupSlot').innerHTML=''; $('#cooldownSlot').innerHTML=''; return; }
   $('#finishBtn').parentElement.style.display='';
-  if(d.off){ wrap.innerHTML = restPanelHTML(d.name+' is a rest day.', "You marked today off. Your "+d.name.toLowerCase()+" lifts are paused. Tap below to bring the session back.", true); wireRestPanel(); $('#finishBtn').parentElement.style.display='none'; $('#warmupSlot').innerHTML=''; $('#cooldownSlot').innerHTML=''; return; }
-  renderChecklist('#warmupSlot', d.warmup, 'warm', 'Warm-up');
+  renderChecklist('#warmupSlot', session.warmup, 'warm', 'Warm-up');
   wrap.innerHTML='';
-  sortedEx(d).forEach(e=>{ wrap.appendChild(renderCard(e, d)); });
+  sortedEx(session).forEach(e=>{ wrap.appendChild(renderCard(e, session)); });
   const add=document.createElement('button'); add.className='addLift';
   add.innerHTML='<span class="addLiftRing">'+svg('<path d="M12 5v14M5 12h14"/>')+'</span><span class="addLiftLabel">add a lift</span>';
   add.onclick=()=> openSwap(null);
   wrap.appendChild(add);
-  renderChecklist('#cooldownSlot', d.cooldown, 'cool', 'Cooldown');
-  renderFinish(d);
+  renderChecklist('#cooldownSlot', session.cooldown, 'cool', 'Cooldown');
+  renderFinish(session);
 }
 /* ---- warm-up / cooldown checklists --------------------------------- */
 const openSections={};
@@ -663,16 +579,16 @@ function renderChecklist(sel, list, key, title){
 function restPanelHTML(title, body, undo){
   return '<div class="restPanel"><div class="moon">'+svg('<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>','')+'</div><h3>'+title+'</h3><p>'+body+'</p>'+(undo?'<button class="undo" id="undoOff">bring the session back</button>':'')+'</div>';
 }
-function wireRestPanel(){ const u=$('#undoOff'); if(u) u.onclick=()=>{ curDay().off=false; render(); }; }
+function wireRestPanel(){ const u=$('#undoOff'); if(u) u.onclick=()=>{ curSession().off=false; render(); }; }
 
-function renderFinish(d){
-  const btn=$('#finishBtn'); const t=dayTotals(d);
+function renderFinish(session){
+  const btn=$('#finishBtn'); const t=sessionTotals(session);
   if(STATE.submitted){ btn.textContent='re-lock session'; btn.classList.add('locked'); btn.disabled=false; }
   else { btn.textContent='finish session'; btn.classList.remove('locked'); btn.disabled = t.logged===0; }
   btn.onclick=()=>{
     STATE.submitted=!STATE.submitted;
     if(STATE.submitted){ STATE.finishedDates=STATE.finishedDates||[]; if(!STATE.finishedDates.includes(today)) STATE.finishedDates.push(today); }
-    renderFinish(d); renderStreak(); saveState();
+    renderFinish(session); renderStreak(); saveState();
   };
 }
 function renderStreak(){
@@ -682,7 +598,7 @@ function renderStreak(){
   el.style.display = n>0 ? '' : 'none';
 }
 
-function renderCard(e, day){
+function renderCard(e, session){
   const rx=prescription(e);
   const card=document.createElement('div'); card.className='ex'+(e.collapsed?' collapsed':''); card.dataset.id=e.id;
   const tier = TIER_LABEL[e.tier]||('tier '+e.tier);
@@ -708,14 +624,14 @@ function renderCard(e, day){
     + '<div class="restSlot"></div>'
     + '<div class="pills"></div>';
   // header actions
-  card.querySelectorAll('[data-act]').forEach(b=>{ b.onclick=(ev)=>{ ev.stopPropagation(); handleAct(b.dataset.act, e, day, b); }; });
+  card.querySelectorAll('[data-act]').forEach(b=>{ b.onclick=(ev)=>{ ev.stopPropagation(); handleAct(b.dataset.act, e, session, b); }; });
   // pills
   const pillWrap=card.querySelector('.pills');
   for(let i=0;i<e.log.length;i++) pillWrap.appendChild(renderPillGroup(e, rx, i));
   // rest timer
   if(restTimers[e.id]) mountRestBar(card, e);
   // drag
-  wireDrag(card, e, day);
+  wireDrag(card, e, session);
   return card;
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -734,9 +650,9 @@ function renderPillGroup(e, rx, idx){
 /* ---- progression suggestion: no banner, no extra copy — the prefilled
    weight IS the suggestion, lightly tinted when it's a bump. Held steady
    after any miss or a partial session; bumped a small, weight-scaled step
-   after a session where every set hit its rep target. */
+   (in pounds) after a session where every set hit its rep target. */
 function suggestedKg(e, rx){
-  const real=e.hist.filter(s=>!s.off);
+  const real=histFor(e).filter(s=>!s.off);
   if(!real.length) return e.lastKg!=null ? e.lastKg : rx.kg;
   const last=real[real.length-1];
   const sets=last.sets||[];
@@ -744,7 +660,7 @@ function suggestedKg(e, rx){
   const anyFail=sets.some(s=>s.fail);
   const allHit=sets.every(s=>!s.fail && (s.r||0)>=rx.reps);
   if(anyFail || !allHit) return last.kg;
-  const bump = last.kg>=60?2.5:(last.kg>=20?1.25:0.5);
+  const bump = last.kg>=135?5:(last.kg>=45?2.5:1);
   return r1(last.kg+bump);
 }
 function renderPill(e, rx, idx){
@@ -816,40 +732,41 @@ function doLog(e, idx, kg, reps, fail){
     const beats = kg>pbBefore || (kg===pbBefore && reps>bestRepsAt(e,pbBefore));
     if(beats && !wasComplete && exComplete(e) && card){ card.classList.add('celebrate'); setTimeout(()=>card.classList.remove('celebrate'),1650); celebrate(e, kg, reps); }
   }
-  if(!fail && (!e.group || isLastInGroup(e, curDay()))) startRest(e);
+  if(!fail && (!e.group || isLastInGroup(e, curSession()))) startRest(e);
 }
 /* ---- supersets / circuits: exercises sharing e.group rest together - */
-function isLastInGroup(e, day){
+function isLastInGroup(e, session){
   if(!e.group) return true;
-  const mem=day.ex.filter(x=>x.group===e.group);
+  const mem=session.ex.filter(x=>x.group===e.group);
   return mem.length ? mem[mem.length-1].id===e.id : true;
 }
-function nextGroupLetter(day){
-  const used=new Set(day.ex.map(x=>x.group).filter(Boolean));
+function nextGroupLetter(session){
+  const used=new Set(session.ex.map(x=>x.group).filter(Boolean));
   for(const l of 'ABCDEFGH') if(!used.has(l)) return l;
   return 'X';
 }
-function linkWithNext(e, day){
-  const idx=day.ex.findIndex(x=>x.id===e.id); const next=day.ex[idx+1]; if(!next) return;
-  const gid=e.group||next.group||nextGroupLetter(day);
+function linkWithNext(e, session){
+  const idx=session.ex.findIndex(x=>x.id===e.id); const next=session.ex[idx+1]; if(!next) return;
+  const gid=e.group||next.group||nextGroupLetter(session);
   e.group=gid; next.group=gid; render();
 }
 function ungroup(e){ delete e.group; render(); }
 function rollupToday(e){
   const done = e.log.filter(s=>s&&!s.fail);
-  e.hist = e.hist.filter(h=>h.date!==today);
-  if(done.length){ const top=done.reduce((a,b)=>b.kg>a.kg?b:a); const sets=e.log.filter(s=>s).map(s=>s.fail?{r:s.reps,fail:true}:{r:s.reps}); e.hist.push({date:today, kg:top.kg, sets}); e.hist.sort((a,b)=>a.date.localeCompare(b.date)); e.lastKg=top.kg; }
+  let h = histFor(e).filter(x=>x.date!==today);
+  if(done.length){ const top=done.reduce((a,b)=>b.kg>a.kg?b:a); const sets=e.log.filter(s=>s).map(s=>s.fail?{r:s.reps,fail:true}:{r:s.reps}); h.push({date:today, kg:top.kg, sets}); h.sort((a,b)=>a.date.localeCompare(b.date)); e.lastKg=top.kg; }
+  STATE.history[e.id]=h;
 }
 
 /* ---- header actions router --------------------------------------- */
-function handleAct(act, e, day, btn){
+function handleAct(act, e, session, btn){
   if(act==='eye'){ e.collapsed=!e.collapsed; render(); }
   else if(act==='pin'){ e.pinned=!e.pinned; render(); }
   else if(act==='form'){ openForm(e); }
   else if(act==='history'){ openHistory(e); }
   else if(act==='swap'){ openSwap(e); }
   else if(act==='tune'){ openTune(e); }
-  else if(act==='menu'){ openMenu(e, day, btn); }
+  else if(act==='menu'){ openMenu(e, session, btn); }
 }
 
 /* ====================================================================
@@ -871,7 +788,7 @@ function updateRest(id){ const card=document.querySelector('.ex[data-id="'+id+'"
 /* ====================================================================
    DRAG TO REORDER
    ================================================================= */
-function wireDrag(card, e, day){
+function wireDrag(card, e, session){
   const grip=card.querySelector('.grip'); if(!grip) return;
   grip.addEventListener('pointerdown', ev=>{
     if(e.pinned){ return; } // pinned lifts hold the top
@@ -879,9 +796,9 @@ function wireDrag(card, e, day){
     const wrap=$('#exwrap'); const cards=[...wrap.querySelectorAll('.ex')];
     const move=mev=>{ const y=mev.clientY; let target=null; cards.forEach(c=>{ if(c===card) return; const r=c.getBoundingClientRect(); if(y>r.top && y<r.bottom) target=c; }); if(target){ const r=target.getBoundingClientRect(); const after = y > r.top + r.height/2; wrap.insertBefore(card, after?target.nextSibling:target); } };
     const up=()=>{ grip.classList.remove('dragging'); card.classList.remove('drag-ghost'); document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up);
-      // commit new order to the day array (respecting pins at top)
+      // commit new order to the session array (respecting pins at top)
       const ids=[...wrap.querySelectorAll('.ex')].map(c=>c.dataset.id);
-      day.ex.sort((a,b)=> ids.indexOf(a.id)-ids.indexOf(b.id));
+      session.ex.sort((a,b)=> ids.indexOf(a.id)-ids.indexOf(b.id));
       render(); };
     document.addEventListener('pointermove',move); document.addEventListener('pointerup',up);
   });
@@ -906,7 +823,7 @@ const popHead = (eyebrow,title)=> '<div class="popHead"><div><div class="eyebrow
 
 /* ---- form / info popup ------------------------------------------- */
 function openForm(e){
-  const info=LIB[e.id]||(STATE.customLib&&STATE.customLib[e.id])||{equipment:'',primary:[],secondary:[],gist:'A solid lift. Keep the reps clean and controlled.',steps:['Set up tight','Move with control','Full range, every rep'],cues:['Control the negative','Full range of motion']};
+  const info=(STATE.customLib&&STATE.customLib[e.id])||{equipment:'',primary:[],secondary:[],gist:'A solid lift. Keep the reps clean and controlled.',steps:['Set up tight','Move with control','Full range, every rep'],cues:['Control the negative','Full range of motion']};
   const muscles=[...(info.primary||[]).map(m=>'<span class="primary">'+m+'</span>'),...(info.secondary||[]).map(m=>'<span class="secondary">'+m+'</span>')].join('<span class="metaSep">·</span>');
   openPop(popHead('Form', e.name)
     + '<div class="formMuscles">'+muscles+(muscles?'<span class="metaSep">·</span>':'')+'<span class="primary">'+(TIER_LABEL[e.tier]||'')+'</span></div>'
@@ -931,7 +848,7 @@ function drawHistory(e, active, setActive){
   const rangeEl=$('#hrange');
   rangeEl.innerHTML=Object.keys(RANGES).map(k=>'<button class="'+(k===active?'on':'')+'" data-r="'+k+'">'+k+'</button>').join('');
   rangeEl.querySelectorAll('button').forEach(b=> b.onclick=()=>{ setActive(b.dataset.r); drawHistory(e, b.dataset.r, setActive); });
-  const all=e.hist.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const all=histFor(e).slice().sort((a,b)=>a.date.localeCompare(b.date));
   const list=all.filter(s=>daysAgo(s.date)<=RANGES[active]);
   drawChart(e, list, active);
   drawStats(e);
@@ -965,7 +882,7 @@ function drawChart(e, list, active){
   else cap.textContent= real.length?'one session here':'';
 }
 function drawStats(e){
-  const real=e.hist.filter(s=>!s.off);
+  const real=histFor(e).filter(s=>!s.off);
   const best=real.length?Math.max(...real.map(s=>s.kg)):0;
   const w30=real.filter(s=>daysAgo(s.date)<=30); const d30=w30.length>=2?r1(w30[w30.length-1].kg-w30[0].kg):0;
   $('#hstats').innerHTML='<div class="stat"><div class="k">Sessions</div><div class="v">'+real.length+'</div></div><div class="stat"><div class="k">Last 30 days</div><div class="v up">'+(d30>=0?'+':'')+d30+' '+STATE.unit+'</div></div><div class="stat"><div class="k">Best</div><div class="v gold">'+best+' '+STATE.unit+'</div></div>';
@@ -984,35 +901,21 @@ function drawTable(e, all){
   }).join('');
 }
 
-/* ---- swap popup --------------------------------------------------- */
-function commitExercise(def, e, day, adding){
-  if(adding){ day.ex.push(def); }
-  else { const i=day.ex.findIndex(x=>x.id===e.id); if(i>=0) day.ex[i]=def; stopRest(e.id); }
+/* ---- swap popup (type any exercise, or load a template) ----------- */
+function commitExercise(def, e, session, adding){
+  if(adding){ session.ex.push(def); }
+  else { const i=session.ex.findIndex(x=>x.id===e.id); if(i>=0) session.ex[i]=def; stopRest(e.id); }
   closePop(); render();
 }
-/** Reference picks for a day: the day's real PROGRAM prescriptions (with
- *  known sets/reps/kg) plus the small SWAPS alternates, deduped. Nothing
- *  here is ever auto-added — it only feeds the "pick from library" list. */
-function libraryOptsFor(dayKey){
-  const fromProgram=((PROGRAM[dayKey]&&PROGRAM[dayKey].exercises)||[]).map(e=>({ id:e.id, name:e.name, tier:e.tier, perHand:!!e.perHand, sets:e.sets, reps:e.reps, kg:e.kg, rest:e.rest }));
-  const fromSwaps=(SWAPS[dayKey]||[]).map(o=>({ id:o.id, name:o.name, tier:o.tier, perHand:!!o.perHand }));
-  const seen=new Set(); const merged=[];
-  fromProgram.concat(fromSwaps).forEach(o=>{ if(!seen.has(o.id)){ seen.add(o.id); merged.push(o); } });
-  return merged;
-}
 function openSwap(e){
-  const day=curDay(); const adding=!e;
-  const opts=libraryOptsFor(STATE.active).filter(o=> !day.ex.some(x=>x.id===o.id));
-  const rows=opts.map(o=>'<button class="swapItem" data-id="'+o.id+'"><span><span class="nm">'+o.name+'</span><span class="mu">'+(TIER_LABEL[o.tier]||'')+(o.perHand?' · per hand':'')+'</span></span><span class="arr">'+svg('<path d="M5 12h14M13 6l6 6-6 6"/>',' fill="none" stroke="currentColor"')+'</span></button>').join('') || '<p class="emptyHist">No more options for this day.</p>';
-  openPop(popHead(adding?'Add':'Swap', adding? day.name+' day' : e.name)
-    + (adding? '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Add a lift to today’s '+day.name.toLowerCase()+'. It starts fresh and you set the weight.</p>'
-             : '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Swap this lift for today. The new exercise starts fresh on this day.</p>')
+  const session=curSession(); const adding=!e;
+  openPop(popHead(adding?'Add':'Swap', adding?'today’s session':e.name)
+    + (adding? '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Add a lift to today’s session. Type any exercise and the AI sets it up for you.</p>'
+             : '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Swap this lift for today. Type the replacement and the AI sets it up.</p>')
     + '<div class="secLbl">Type any exercise</div>'
     + '<div class="searchRow">'+svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>')+'<input id="aiName" placeholder="e.g. Zercher squat, 5k run" autocomplete="off" /></div>'
     + '<button class="pbtn save" id="aiGo" style="margin-top:10px;width:100%">Look it up with AI</button>'
     + '<div id="aiStatus" style="margin-top:10px;font-size:13px;min-height:16px"></div>'
-    + '<div class="secLbl">'+(adding?'Or pick from the '+day.name.toLowerCase()+' library':'Or pick a recommended swap')+'</div>'
-    + '<div class="swapList">'+rows+'</div>'
     + (adding ? (
         '<div class="secLbl">Templates</div>'
         + '<div class="swapList">'+((STATE.templates||[]).map(t=>'<button class="swapItem" data-tpl="'+t.id+'"><span class="nm">'+t.name+'</span><span class="mu">'+t.ex.length+' exercises</span></button>').join('') || '<p class="emptyHist">No saved templates yet.</p>')+'</div>'
@@ -1020,29 +923,23 @@ function openSwap(e){
         + '<button class="pbtn ghost" id="tplSave" style="width:100%;margin-top:8px">Save current list as a template</button>'
       ) : ''),
     scrim=>{
-      scrim.querySelectorAll('.swapItem[data-id]').forEach(b=> b.onclick=()=>{
-        const o=opts.find(x=>x.id===b.dataset.id); if(!o) return;
-        const sets=o.sets||(e?e.sets:3);
-        const def={ id:o.id, name:o.name, tier:o.tier, sets, reps:(o.reps||(e?e.reps:10)), kg:(o.kg!=null?o.kg:(e?e.kg:20)), perHand:!!o.perHand, rest:(o.rest||(e?e.rest:120)), lastKg:null, pinned:false, collapsed:false, deload:false, note:'', log:Array(sets).fill(null), hist:[] };
-        commitExercise(def, e, day, adding);
-      });
       if(adding){
         scrim.querySelectorAll('.swapItem[data-tpl]').forEach(b=> b.onclick=()=>{
           const t=(STATE.templates||[]).find(x=>x.id===b.dataset.tpl); if(!t) return;
-          const used=new Set(day.ex.map(x=>x.id));
+          const used=new Set(session.ex.map(x=>x.id));
           const defs=t.ex.map(info=>{
             const id=slugifyAvoiding(info.name, used); used.add(id);
             const sets=info.sets||3;
-            return { id, name:info.name, tier:info.tier||2, sets, reps:info.reps||10, kg:info.kg||0, perHand:!!info.perHand, rest:info.rest||90, lastKg:null, pinned:false, collapsed:false, deload:false, note:'', log:Array(sets).fill(null), hist:[] };
+            return { id, name:info.name, tier:info.tier||2, sets, reps:info.reps||10, kg:info.kg||0, perHand:!!info.perHand, rest:info.rest||90, lastKg:lastKgFromHistory(id), pinned:false, collapsed:false, deload:false, note:'', log:Array(sets).fill(null) };
           });
-          day.ex.push(...defs); closePop(); render();
+          session.ex.push(...defs); closePop(); render();
         });
         const tplNameIn=scrim.querySelector('#tplName'), tplSaveBtn=scrim.querySelector('#tplSave');
-        tplSaveBtn.disabled = !day.ex.length;
+        tplSaveBtn.disabled = !session.ex.length;
         tplSaveBtn.onclick=()=>{
-          const nm=(tplNameIn.value||'').trim(); if(!nm || !day.ex.length) return;
+          const nm=(tplNameIn.value||'').trim(); if(!nm || !session.ex.length) return;
           STATE.templates=STATE.templates||[];
-          STATE.templates.push({ id:'t'+Date.now(), name:nm, ex: day.ex.map(x=>({name:x.name,tier:x.tier,sets:x.sets,reps:x.reps,kg:x.kg,perHand:x.perHand,rest:x.rest})) });
+          STATE.templates.push({ id:'t'+Date.now(), name:nm, ex: session.ex.map(x=>({name:x.name,tier:x.tier,sets:x.sets,reps:x.reps,kg:x.kg,perHand:x.perHand,rest:x.rest})) });
           saveState(); closePop(); openSwap(null);
         };
       }
@@ -1056,8 +953,8 @@ function openSwap(e){
           STATE.customLib=STATE.customLib||{};
           STATE.customLib[id]={ equipment:info.equipment||'', primary:info.primary||[], secondary:info.secondary||[], gist:info.gist||'', steps:info.steps||[], cues:info.cues||[] };
           const sets=Math.max(1,Math.min(8,Math.round(info.startingSets)||3));
-          const def={ id, name:nm, tier:info.tier||2, sets, reps:Math.max(1,Math.round(info.startingReps)||10), kg:Number.isFinite(info.startingKg)?info.startingKg:0, perHand:false, rest:Math.max(30,Math.round(info.restSeconds)||90), lastKg:null, pinned:false, collapsed:false, deload:false, note:'', log:Array(sets).fill(null), hist:[] };
-          commitExercise(def, e, day, adding);
+          const def={ id, name:nm, tier:info.tier||2, sets, reps:Math.max(1,Math.round(info.startingReps)||10), kg:Number.isFinite(info.startingKg)?info.startingKg:0, perHand:false, rest:Math.max(30,Math.round(info.restSeconds)||90), lastKg:lastKgFromHistory(id), pinned:false, collapsed:false, deload:false, note:'', log:Array(sets).fill(null) };
+          commitExercise(def, e, session, adding);
         }catch(err){
           status.style.color='var(--fail)';
           const reason=err&&err.message;
@@ -1070,71 +967,69 @@ function openSwap(e){
     });
 }
 
-/* ---- smart generator ------------------------------------------------ */
+/* ---- generate: a real conversation with the coach ------------------ */
 function openGenerate(){
-  const day=curDay(); const prefs=STATE.genPrefs;
-  const equipRows=EQUIPMENT_OPTIONS.map(o=>'<button class="swapItem genEquip'+(prefs.equipment.includes(o)?' on':'')+'" data-eq="'+o+'"><span class="nm">'+o+'</span></button>').join('');
-  const minRows=MINUTE_OPTIONS.map(m=>'<button class="'+(prefs.minutes===m?'on':'')+'" data-m="'+m+'">'+m+(m===60?'+':'')+' min</button>').join('');
-  openPop(popHead('Generate', day.name+' day')
-    + '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Built for your goal — '+ATHLETE_GOAL.toLowerCase()+'. Pick what you’ve got today.</p>'
-    + '<div class="secLbl">Equipment available</div>'
-    + '<div class="swapList" id="genEquipList">'+equipRows+'</div>'
-    + '<div class="secLbl">Time available</div>'
-    + '<div class="range" id="genMinutes" style="margin:0 0 0">'+minRows+'</div>'
-    + '<div id="genStatus" style="margin-top:16px;font-size:13px;min-height:16px"></div>'
-    + '<div class="popBtns"><button class="pbtn ghost" id="genCancel">cancel</button><button class="pbtn save" id="genGo">generate</button></div>',
+  const session=curSession();
+  const messages=[]; // {role:'user'|'ai', text}
+  openPop(popHead('Generate', 'Talk to your coach')
+    + '<div class="chatLog" id="chatLog"></div>'
+    + '<div class="searchRow" style="margin-top:12px"><input id="chatIn" placeholder="e.g. 30 min, dumbbells only, explosiveness for taekwondo" autocomplete="off"/></div>'
+    + '<button class="pbtn save" id="chatSend" style="width:100%;margin-top:10px">Send</button>'
+    + '<div id="chatResult"></div>',
     scrim=>{
-      scrim.querySelectorAll('.genEquip').forEach(b=> b.onclick=()=>{
-        const v=b.dataset.eq; const i=prefs.equipment.indexOf(v);
-        if(i>=0) prefs.equipment.splice(i,1); else prefs.equipment.push(v);
-        b.classList.toggle('on'); saveState();
-      });
-      scrim.querySelectorAll('#genMinutes button').forEach(b=> b.onclick=()=>{
-        prefs.minutes=+b.dataset.m; scrim.querySelectorAll('#genMinutes button').forEach(x=>x.classList.toggle('on',x===b)); saveState();
-      });
-      scrim.querySelector('#genCancel').onclick=closePop;
-      scrim.querySelector('#genGo').onclick=()=> runGenerate(day, prefs, scrim);
+      const log=scrim.querySelector('#chatLog'), input=scrim.querySelector('#chatIn'), sendBtn=scrim.querySelector('#chatSend'), result=scrim.querySelector('#chatResult');
+      function paint(){ log.innerHTML = messages.map(m=>'<div class="chatMsg '+m.role+'">'+escapeHtml(m.text)+'</div>').join(''); log.scrollTop = log.scrollHeight; }
+      async function send(){
+        const text=input.value.trim(); if(!text) return;
+        messages.push({role:'user', text}); input.value=''; paint();
+        sendBtn.disabled=true; input.disabled=true;
+        messages.push({role:'ai', text:'…thinking'}); paint();
+        try{
+          const history = messages.slice(0,-1).map(m=>({role:m.role==='user'?'user':'assistant', text:m.text}));
+          const res = await window.Vitality.generateWorkout({ goal:ATHLETE_GOAL, messages:history });
+          messages.pop();
+          if(res && res.kind==='question'){
+            messages.push({role:'ai', text:res.text}); paint();
+          } else if(res && res.kind==='workout'){
+            messages.push({role:'ai', text:res.reply||'Here’s your session.'}); paint();
+            showApply(res, session, result);
+          } else {
+            messages.push({role:'ai', text:"Couldn't build that — try again."}); paint();
+          }
+        }catch(err){
+          messages.pop();
+          const reason=err&&err.message;
+          messages.push({role:'ai', text: reason==='no_key' ? 'Add your own Anthropic key to use this — ask your mentor.' : "Couldn't reach the coach — try again."});
+          paint();
+        }
+        sendBtn.disabled=false; input.disabled=false; input.focus();
+      }
+      sendBtn.onclick=send;
+      input.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); send(); } });
+      input.focus();
     });
 }
-async function runGenerate(day, prefs, scrim){
-  const btn=scrim.querySelector('#genGo'), status=scrim.querySelector('#genStatus');
-  if(!prefs.equipment.length){ status.style.color='var(--fail)'; status.textContent='Pick at least one equipment option.'; return; }
-  btn.disabled=true; status.style.color='var(--muted-strong)'; status.textContent='Building your session…';
-  try{
-    const list=await window.Vitality.generateWorkout({ goal:ATHLETE_GOAL, dayType:day.name, equipment:prefs.equipment.join(', '), minutes:prefs.minutes });
-    if(!Array.isArray(list) || !list.length) throw new Error('empty');
-    const used=new Set(day.ex.map(x=>x.id));
-    const defs=list.map(info=>{
-      const id=slugifyAvoiding(info.name||'exercise', used); used.add(id);
-      STATE.customLib=STATE.customLib||{};
-      STATE.customLib[id]={ equipment:info.equipment||'', primary:info.primary||[], secondary:info.secondary||[], gist:info.gist||'', steps:info.steps||[], cues:info.cues||[] };
-      const sets=Math.max(1,Math.min(8,Math.round(info.startingSets)||3));
-      return { id, name:info.name||'Exercise', tier:info.tier||2, sets, reps:Math.max(1,Math.round(info.startingReps)||10), kg:Number.isFinite(info.startingKg)?info.startingKg:0, perHand:false, rest:Math.max(30,Math.round(info.restSeconds)||90), lastKg:null, pinned:false, collapsed:false, deload:false, note:'', log:Array(sets).fill(null), hist:[] };
-    });
-    offerApply(day, defs, scrim);
-  }catch(err){
-    status.style.color='var(--fail)';
-    status.textContent = (err&&err.message==='no_key') ? 'Add your own Anthropic key to use this — ask your mentor.' : "Couldn't generate a session — try again.";
-    btn.disabled=false;
-  }
-}
-function offerApply(day, defs, scrim){
-  const status=scrim.querySelector('#genStatus'), btn=scrim.querySelector('#genGo');
-  btn.style.display='none';
-  status.style.color='var(--text)';
-  status.textContent = 'Got '+defs.length+' exercises. Add to today’s '+day.name.toLowerCase()+', or replace what’s there?';
-  const row=document.createElement('div'); row.className='popBtns'; row.style.marginTop='12px';
-  row.innerHTML='<button class="pbtn ghost" id="genAdd">Add alongside</button><button class="pbtn save" id="genReplace">Replace day</button>';
-  status.insertAdjacentElement('afterend', row);
-  row.querySelector('#genAdd').onclick=()=>{ day.ex.push(...defs); closePop(); render(); };
-  row.querySelector('#genReplace').onclick=()=>{ day.ex.forEach(x=>stopRest(x.id)); day.ex=defs; closePop(); render(); };
+function showApply(res, session, result){
+  const used=new Set(session.ex.map(x=>x.id));
+  const defs=(res.exercises||[]).map(info=>{
+    const id=slugifyAvoiding(info.name||'exercise', used); used.add(id);
+    STATE.customLib=STATE.customLib||{};
+    STATE.customLib[id]={ equipment:info.equipment||'', primary:info.primary||[], secondary:info.secondary||[], gist:info.gist||'', steps:info.steps||[], cues:info.cues||[] };
+    const sets=Math.max(1,Math.min(8,Math.round(info.startingSets)||3));
+    return { id, name:info.name||'Exercise', tier:info.tier||2, sets, reps:Math.max(1,Math.round(info.startingReps)||10), kg:Number.isFinite(info.startingKg)?info.startingKg:0, perHand:false, rest:Math.max(30,Math.round(info.restSeconds)||90), lastKg:lastKgFromHistory(id), pinned:false, collapsed:false, deload:false, note:'', log:Array(sets).fill(null) };
+  });
+  const warmup=(res.warmup||[]).map(t=>({text:t, done:false}));
+  const cooldown=(res.cooldown||[]).map(t=>({text:t, done:false}));
+  result.innerHTML = '<div class="popBtns" style="margin-top:14px"><button class="pbtn ghost" id="genAdd">Add alongside</button><button class="pbtn save" id="genReplace">Replace today</button></div>';
+  result.querySelector('#genAdd').onclick=()=>{ session.ex.push(...defs); if(warmup.length) session.warmup=session.warmup.concat(warmup); if(cooldown.length) session.cooldown=session.cooldown.concat(cooldown); closePop(); render(); };
+  result.querySelector('#genReplace').onclick=()=>{ session.ex.forEach(x=>stopRest(x.id)); session.ex=defs; session.warmup=warmup; session.cooldown=cooldown; closePop(); render(); };
 }
 
 /* ---- tune popup --------------------------------------------------- */
 function openTune(e){
   const draft={ kg:e.kg, reps:e.reps, sets:e.sets, rest:e.rest };
   const loggedCount=e.log.filter(s=>s).length;
-  openPop(popHead('Tune · '+(curDay().type||'session')+' day', e.name)
+  openPop(popHead('Tune', e.name)
     + '<div style="margin-top:18px"></div>'
     + fieldRow('Weight','<input class="wInput" id="tw" type="number" inputmode="decimal" step="0.5" value="'+draft.kg+'"><span class="wUnit">'+STATE.unit+(e.perHand?'/ea':'')+'</span>', 'weight')
     + stepRow('Sets','tsets', draft.sets)
@@ -1161,10 +1056,10 @@ function fieldRow(label, ctl, icon){ const ic={weight:'<path d="M7 9v6M17 9v6M4 
 function stepRow(label, id, val){ const f=id==='tsets'?'sets':(id==='treps'?'reps':'rest'); return '<div class="field" id="'+id+'"><span class="lbl">'+label+'</span><div class="stepper"><button class="step minus" data-f="'+f+'" data-d="-1">−</button><span class="stepVal">'+val+'</span><button class="step" data-f="'+f+'" data-d="1">+</button></div></div>'; }
 
 /* ---- overflow menu (remove / deload / note) ---------------------- */
-function openMenu(e, day, btn){
+function openMenu(e, session, btn){
   const root=$('#popRoot');
   const r=btn.getBoundingClientRect();
-  const idx=day.ex.findIndex(x=>x.id===e.id); const hasNext=idx>=0 && idx<day.ex.length-1;
+  const idx=session.ex.findIndex(x=>x.id===e.id); const hasNext=idx>=0 && idx<session.ex.length-1;
   root.innerHTML='<div class="scrim" id="scrim" style="background:transparent"><div class="menuPop" id="menuPop"></div></div>';
   const scrim=$('#scrim'); const menu=$('#menuPop');
   menu.innerHTML=
@@ -1183,9 +1078,9 @@ function openMenu(e, day, btn){
     const m=b.dataset.m; closePop();
     if(m==='deload'){ e.deload=!e.deload; render(); }
     else if(m==='note'){ openNote(e); }
-    else if(m==='link'){ linkWithNext(e, day); }
+    else if(m==='link'){ linkWithNext(e, session); }
     else if(m==='ungroup'){ ungroup(e); }
-    else if(m==='remove'){ confirmRemove(e, day); }
+    else if(m==='remove'){ confirmRemove(e, session); }
   });
 }
 function openNote(e){
@@ -1201,13 +1096,13 @@ function openNote(e){
   ed.querySelector('#noteSave').onclick=save;
   inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter') save(); if(ev.key==='Escape'){ render(); } });
 }
-function confirmRemove(e, day){
+function confirmRemove(e, session){
   openPop(popHead('Remove', e.name)
-    + '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Your logged history is kept. This only removes '+e.name+' from your '+day.name+' day.</p>'
+    + '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Removes '+e.name+' from today — its history stays, so it picks up where it left off if you bring it back.</p>'
     + '<div class="popBtns"><button class="pbtn ghost" id="rcancel">Keep it</button><button class="pbtn danger" id="ryes">Remove</button></div>',
     scrim=>{ scrim.querySelector('#rcancel').onclick=closePop; scrim.querySelector('#ryes').onclick=()=>{
-      const i=day.ex.findIndex(x=>x.id===e.id); if(i>=0) day.ex.splice(i,1); stopRest(e.id);
-      if(e.group){ const rest=day.ex.filter(x=>x.group===e.group); if(rest.length<2) rest.forEach(x=>delete x.group); }
+      const i=session.ex.findIndex(x=>x.id===e.id); if(i>=0) session.ex.splice(i,1); stopRest(e.id);
+      if(e.group){ const rest=session.ex.filter(x=>x.group===e.group); if(rest.length<2) rest.forEach(x=>delete x.group); }
       closePop(); render();
     }; });
 }
@@ -1243,16 +1138,19 @@ function spawnParticles(root){
 
 /* ---- boot: load state from the dashboard bridge, THEN render -------
    window.Vitality is injected by the dashboard — we never define it. load()
-   returns [] when empty, or the saved STATE object; render only after it resolves. */
+   returns [] when empty, or the saved STATE object; render only after it
+   resolves. Old (pre-rewrite) saves used a `days` shape — those are
+   structurally incompatible with the single-session model, so they start
+   fresh rather than risk a broken migration. */
 (async()=>{
   let d=null;
   try{ d = await window.Vitality.load(); }catch(e){ d=null; }
-  STATE = (d && typeof d==='object' && !Array.isArray(d) && d.days) ? d : buildState();
+  const usable = d && typeof d==='object' && !Array.isArray(d) && d.session && !d.days;
+  STATE = usable ? d : buildState();
   STATE.customLib = STATE.customLib || {};
   STATE.finishedDates = STATE.finishedDates || [];
-  STATE.genPrefs = STATE.genPrefs || { equipment:['Barbell','Dumbbells','Machines'], minutes:45 };
   STATE.templates = STATE.templates || [];
-  ORDER.forEach(k=>{ const day=STATE.days[k]; if(day && !day.warmup) day.warmup = day.restDay?[]:seedChecklist(DEFAULT_WARMUP[k]); if(day && !day.cooldown) day.cooldown = day.restDay?[]:seedChecklist(DEFAULT_COOLDOWN[k]); });
+  STATE.history = STATE.history || {};
   render(); wireFresh();
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
 })();

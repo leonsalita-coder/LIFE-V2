@@ -32,7 +32,7 @@ export async function GET(req: Request): Promise<Response> {
   "startingKg": 20,
   "restSeconds": 90
 }
-Rules: "tier" is 1 for a primary compound/heavy lift, 2 for a secondary compound/moderate lift, 3 for an isolation/accessory lift. "steps" has exactly 3 short entries. "cues" has exactly 2 short entries. "startingKg" is a reasonable STARTING weight in kg for an intermediate lifter (0 if bodyweight-only, ignore for cardio/mobility movements and just estimate a token value). Keep every string short and plain.
+Rules: "tier" is 1 for a primary compound/heavy lift, 2 for a secondary compound/moderate lift, 3 for an isolation/accessory lift. "steps" has exactly 3 short entries. "cues" has exactly 2 short entries. "startingKg" is actually POUNDS (lb) — a reasonable STARTING weight for an intermediate lifter (0 if bodyweight-only, ignore for cardio/mobility movements and just estimate a token value). Keep every string short and plain.
 
 Exercise name: "${name.replace(/"/g, "'")}"
 
