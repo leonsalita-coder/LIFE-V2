@@ -234,6 +234,30 @@
   .freshbtn { display:block; margin: 13px auto 0; background:none; border:none; color: var(--muted); font-family: var(--sans); font-size:12.5px; font-weight:500; cursor:pointer; padding:8px 12px; border-radius:9px; transition: color .18s; }
   .freshbtn:hover { color: var(--text); } .freshbtn.arm { color: var(--fail); font-weight:600; }
   .store-note { text-align:center; color: var(--muted); font-size:11.5px; font-weight:500; margin-top:6px; opacity:.85; }
+
+  /* short-term goal bubble */
+  .goalPill { width:100%; text-align:left; background:none; border:1px solid var(--line); color:var(--text); border-radius:14px; padding:14px 16px; font-family:var(--serif); font-style:italic; font-size:15.5px; cursor:pointer; transition: border-color .15s, background .15s; }
+  .goalPill:hover { border-color: var(--mint); background: rgba(110,231,183,.04); }
+  .goalPill.empty { color: var(--muted); }
+
+  /* progress photos */
+  .photoCard { border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-bottom:14px; }
+  .photoImg { width:100%; display:block; max-height:440px; object-fit:cover; background:var(--row); }
+  .photoMeta { display:flex; align-items:center; justify-content:space-between; padding:11px 14px; }
+  .photoDate { font-family:var(--vt-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  .photoX { background:none; border:none; color:var(--muted); font-size:17px; cursor:pointer; padding:2px 6px; line-height:1; }
+  .photoX:hover { color: var(--fail); }
+  .photoNote { padding:0 14px 16px; font-size:13.5px; color:var(--text); line-height:1.55; font-style:italic; font-family:var(--serif); }
+  .photoNote.muted { color: var(--muted); font-style:normal; font-family:var(--sans); font-size:12.5px; }
+  .photoStatus { text-align:center; font-size:12px; color:var(--muted); margin-top:8px; min-height:14px; }
+
+  /* aggregate progress stats */
+  .statsPickBtn.on { border-color: var(--mint); background: rgba(110,231,183,.08); }
+  .statsPickBtn.on .nm { color: var(--mint); }
+  .cal { display:flex; flex-wrap:wrap; gap:5px; padding:6px 2px; }
+  .cal .cd { width:13px; height:13px; border-radius:3px; background: var(--row); border:1px solid var(--line); }
+  .cal .cd.on { background: var(--mint); border-color: var(--mint); }
+  .cal .cd.off { background: rgba(224,106,108,.28); border-color: var(--fail); }
   .insightBox { margin-top:12px; text-align:center; font-family: var(--serif); font-style:italic; font-size:13.5px; color: var(--mint); line-height:1.5; }
 
   /* ── popups (history / form / swap / tune / overflow menu) ─────────── */
@@ -396,6 +420,27 @@
     <button class="freshbtn" id="freshbtn">Start fresh</button>
     <p class="store-note">Saved to your Vitality dashboard.</p>
   </div>
+
+  <div class="sheet" id="goalSheet">
+    <div class="eyebrow">Short-term goal</div>
+    <div id="goalBubble" style="margin-top:14px"></div>
+  </div>
+
+  <div class="sheet" id="photosSheet">
+    <div class="eyebrow">Progress photos</div>
+    <div id="photoGallery" style="margin-top:14px"></div>
+    <input type="file" id="photoInput" accept="image/*" style="display:none" />
+    <button class="addLift" id="addPhotoBtn"><span class="addLiftRing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="addLiftLabel">add a photo</span></button>
+    <div id="photoStatus" class="photoStatus"></div>
+  </div>
+
+  <div class="sheet" id="statsSheet">
+    <div class="eyebrow">Progress</div>
+    <div class="swapList" id="statsPicker" style="margin-top:14px"></div>
+    <div class="range" id="statsRange"></div>
+    <div class="chart-card"><div class="plot" id="statsPlot"></div><div class="delta-cap" id="statsCap"></div></div>
+    <div class="stats" id="statsRow"></div>
+  </div>
 </div>
 
 <div id="popRoot"></div>
@@ -429,6 +474,13 @@ function mmss(s){ return Math.floor(s/60)+':'+pad(s%60); }
 const TIER_LABEL = { 1:'tier 1', 2:'tier 2', 3:'tier 3' };
 /* ---- the athlete's goal (written here by the mentor, same as weights.ts) - */
 const ATHLETE_GOAL = 'Become a peak athlete in taekwondo and soccer';
+/** Long-term goal + whatever short-term goal is currently set, combined for
+ *  every AI call — so a short-term focus actually shapes advice instead of
+ *  being cosmetic. */
+function fullGoalContext(){
+  const g=(STATE.shortTermGoal||'').trim();
+  return g ? ATHLETE_GOAL+'. Right now, short-term focus: '+g : ATHLETE_GOAL;
+}
 
 /* ---- build / load state ---------------------------------------------
    ONE session, keyed by today's real date — rolls over to a fresh, empty
@@ -441,7 +493,8 @@ function buildState(){
   return {
     unit:'lb', submitted:false,
     session:{ date:today, off:false, warmup:[], cooldown:[], ex:[] },
-    history:{}, customLib:{}, finishedDates:[], templates:[], deloadOverrides:{}
+    history:{}, customLib:{}, finishedDates:[], templates:[], deloadOverrides:{},
+    exerciseNames:{}, shortTermGoal:'', photos:[]
   };
 }
 function seedChecklist(list){ return (list||[]).map(text=>({text, done:false})); }
@@ -693,7 +746,7 @@ async function fetchInsight(session){
     const lines=ctx.lines.slice();
     applied.forEach(a=> lines.push('AUTO-DELOAD APPLIED: '+a.name+' automatically dropped from '+a.from+' to '+a.to+' '+STATE.unit+' due to the plateau + low recovery — report this as a fact that already happened, not a suggestion.'));
     const digest=lines.join('\n');
-    const note=await window.Vitality.getInsight({ goal:ATHLETE_GOAL, digest });
+    const note=await window.Vitality.getInsight({ goal:fullGoalContext(), digest });
     session.insight={ date:today, text:(typeof note==='string'&&note.trim())?note.trim():null };
   }catch(err){ session.insight={ date:today, text:null }; }
   render(); // covers saveState + insight display + any auto-deload reflected in the UI
@@ -874,6 +927,7 @@ function rollupToday(e){
   let h = histFor(e).filter(x=>x.date!==today);
   if(done.length){ const top=done.reduce((a,b)=>b.kg>a.kg?b:a); const sets=e.log.filter(s=>s).map(s=>s.fail?{r:s.reps,fail:true}:{r:s.reps}); h.push({date:today, kg:top.kg, sets}); h.sort((a,b)=>a.date.localeCompare(b.date)); e.lastKg=top.kg; }
   STATE.history[e.id]=h;
+  STATE.exerciseNames=STATE.exerciseNames||{}; STATE.exerciseNames[e.id]=e.name;
 }
 
 /* ---- header actions router --------------------------------------- */
@@ -1104,7 +1158,7 @@ function openGenerate(){
         messages.push({role:'ai', text:'…thinking'}); paint();
         try{
           const history = messages.slice(0,-1).map(m=>({role:m.role==='user'?'user':'assistant', text:m.text}));
-          const res = await window.Vitality.generateWorkout({ goal:ATHLETE_GOAL, messages:history });
+          const res = await window.Vitality.generateWorkout({ goal:fullGoalContext(), messages:history });
           messages.pop();
           if(res && res.kind==='question'){
             messages.push({role:'ai', text:res.text}); paint();
@@ -1240,7 +1294,167 @@ function wireFresh(){
     clearTimeout(timer); armed=false; fb.textContent='Start fresh'; fb.classList.remove('arm');
     Object.keys(restTimers).forEach(stopRest);
     STATE=buildState(); STATE.submitted=false; render();
+    renderGoalBubble(); renderPhotos(); renderStatsPicker(); drawStatsSection();
   };
+}
+
+/* ====================================================================
+   SHORT-TERM GOAL — a bubble at the bottom, factored into every AI call
+   until cleared. Independent of the daily session; only re-renders on
+   its own change, not on every set logged.
+   ================================================================= */
+function renderGoalBubble(){
+  const el=$('#goalBubble'); if(!el) return;
+  const g=(STATE.shortTermGoal||'').trim();
+  el.innerHTML = '<button class="goalPill'+(g?'':' empty')+'" id="goalPillBtn">'+(g?escapeHtml(g):'Set a short-term goal (optional)')+'</button>';
+  $('#goalPillBtn').onclick=openGoalEdit;
+}
+function openGoalEdit(){
+  openPop(popHead('Goal','Short-term focus')
+    + '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Optional — a temporary focus layered on top of your main goal. The coach factors this into the generator and your session notes until you change or clear it.</p>'
+    + '<div class="searchRow" style="margin-top:14px"><input id="stgIn" placeholder="e.g. Peak for regionals in 3 weeks" value="'+escapeHtml(STATE.shortTermGoal||'')+'" autocomplete="off"/></div>'
+    + '<div class="popBtns"><button class="pbtn ghost" id="stgClear">Clear</button><button class="pbtn save" id="stgSave">Save</button></div>',
+    scrim=>{
+      scrim.querySelector('#stgIn').focus();
+      scrim.querySelector('#stgSave').onclick=()=>{ STATE.shortTermGoal=(scrim.querySelector('#stgIn').value||'').trim(); saveState(); closePop(); renderGoalBubble(); };
+      scrim.querySelector('#stgClear').onclick=()=>{ STATE.shortTermGoal=''; saveState(); closePop(); renderGoalBubble(); };
+    });
+}
+
+/* ====================================================================
+   PROGRESS PHOTOS — upload, AI analysis (window.Vitality.addProgressPhoto),
+   stored as {url, date, analysis} refs only; the actual bytes live in
+   the owner's own Supabase Storage (supabase/photos.sql), never in
+   tile_data itself.
+   ================================================================= */
+function renderPhotos(){
+  const el=$('#photoGallery'); if(!el) return;
+  const photos=STATE.photos||[];
+  if(!photos.length){ el.innerHTML='<p class="emptyHist">No progress photos yet.</p>'; return; }
+  el.innerHTML = photos.map((p,i)=>{
+    const realIdx=photos.length-1-i;
+    return '<div class="photoCard">'
+      + (p.url ? '<img src="'+p.url+'" alt="progress photo" class="photoImg" loading="lazy"/>' : '')
+      + '<div class="photoMeta"><span class="photoDate">'+fmtDate(p.date)+'</span><button class="photoX" data-i="'+realIdx+'" aria-label="Remove">×</button></div>'
+      + (p.analysis===undefined ? '<p class="photoNote muted">Analyzing…</p>'
+        : p.failed ? '<p class="photoNote muted">Couldn’t save this photo — ask your mentor to check Supabase storage, or add your Anthropic key.</p>'
+        : p.analysis ? '<p class="photoNote">'+escapeHtml(p.analysis)+'</p>'
+        : '<p class="photoNote muted">No analysis available for this one.</p>')
+      + '</div>';
+  }).reverse().join('');
+  el.querySelectorAll('.photoX').forEach(b=> b.onclick=()=>{ STATE.photos.splice(+b.dataset.i,1); saveState(); renderPhotos(); });
+}
+function wirePhotoUpload(){
+  const btn=$('#addPhotoBtn'), input=$('#photoInput'), status=$('#photoStatus');
+  if(!btn||!input) return;
+  btn.onclick=()=> input.click();
+  input.onchange=()=>{
+    const file=input.files && input.files[0]; input.value='';
+    if(!file) return;
+    if(!file.type.startsWith('image/')){ status.textContent='That’s not an image.'; return; }
+    if(file.size > 10*1024*1024){ status.textContent='Photo’s too large — try one under 10MB.'; return; }
+    status.textContent='Uploading…';
+    const reader=new FileReader();
+    reader.onload=async()=>{
+      const dataUrl=String(reader.result||'');
+      const comma=dataUrl.indexOf(',');
+      const mime=(dataUrl.slice(5,dataUrl.indexOf(';'))||'image/jpeg');
+      const base64=dataUrl.slice(comma+1);
+      const entry={ url:null, date:today, analysis:undefined };
+      STATE.photos=STATE.photos||[]; STATE.photos.push(entry); saveState(); renderPhotos();
+      try{
+        const res=await window.Vitality.addProgressPhoto({ base64, mime, goal:fullGoalContext() });
+        entry.url=(res&&res.url)||null; entry.analysis=(res&&res.analysis)||null;
+        if(!entry.url) entry.failed=true;
+      }catch(err){ entry.analysis=null; entry.failed=true; }
+      status.textContent=''; saveState(); renderPhotos();
+    };
+    reader.readAsDataURL(file);
+  };
+}
+
+/* ====================================================================
+   PROGRESS STATS — pick a metric (aggregate volume, session calendar, or
+   a specific exercise) and a range, reusing the same range-picker pattern
+   as the per-exercise history popup but drawing straight from the global
+   STATE.history so it survives any single exercise being removed today.
+   ================================================================= */
+let statsView={ id:'__volume' }, statsRangeKey='M';
+function renderStatsPicker(){
+  const el=$('#statsPicker'); if(!el) return;
+  const names=STATE.exerciseNames||{};
+  const items=[{id:'__volume',label:'Volume'},{id:'__sessions',label:'Sessions'}].concat(Object.keys(names).map(id=>({id,label:names[id]})));
+  el.innerHTML = items.map(it=>'<button class="swapItem statsPickBtn'+(statsView.id===it.id?' on':'')+'" data-id="'+it.id+'"><span class="nm">'+escapeHtml(it.label)+'</span></button>').join('');
+  el.querySelectorAll('.statsPickBtn').forEach(b=> b.onclick=()=>{ statsView={id:b.dataset.id}; renderStatsPicker(); drawStatsSection(); });
+}
+function drawStatsSection(){
+  const rangeEl=$('#statsRange');
+  const showRange = statsView.id!=='__sessions';
+  rangeEl.style.display = showRange ? '' : 'none';
+  rangeEl.innerHTML=Object.keys(RANGES).map(k=>'<button class="'+(k===statsRangeKey?'on':'')+'" data-r="'+k+'">'+k+'</button>').join('');
+  rangeEl.querySelectorAll('button').forEach(b=> b.onclick=()=>{ statsRangeKey=b.dataset.r; drawStatsSection(); });
+  if(statsView.id==='__sessions') return drawSessionsCal();
+  if(statsView.id==='__volume') return drawVolumeChart();
+  return drawExerciseChart(statsView.id);
+}
+function aggregateVolumeByDate(){
+  const map={};
+  Object.keys(STATE.history||{}).forEach(id=>{
+    (STATE.history[id]||[]).forEach(entry=>{
+      if(entry.off) return;
+      const vol=(entry.kg||0)*((entry.sets&&entry.sets.length)||0);
+      map[entry.date]=(map[entry.date]||0)+vol;
+    });
+  });
+  return Object.keys(map).sort().map(date=>({date, kg:r1(map[date])}));
+}
+function drawAggChart(list, active, unitLabel){
+  const plot=$('#statsPlot'), cap=$('#statsCap');
+  plot.style.aspectRatio='600/240';
+  if(!list.length){ plot.innerHTML='<svg viewBox="0 0 600 240" preserveAspectRatio="none"><text class="xlab" x="300" y="120" text-anchor="middle">no data yet</text></svg>'; cap.textContent=''; return; }
+  const VB_W=600,VB_H=240,PADL=46,PADR=20,PADT=22,PADB=36;
+  const ws=list.map(s=>s.kg);
+  let lo=0, hi=Math.ceil(Math.max(...ws,1)/5)*5+5;
+  const oldestAgo=Math.max(...list.map(s=>daysAgo(s.date)));
+  const domain= active==='ALL'? Math.max(oldestAgo,1):Math.max(RANGES[active],1);
+  const X=k=>{ const f=Math.min(1,Math.max(0,1-daysAgo(k)/domain)); return PADL+f*(VB_W-PADL-PADR); };
+  const Y=v=>(VB_H-PADB)-(v-lo)/(hi-lo)*(VB_H-PADB-PADT);
+  const step=Math.max(5,Math.ceil((hi-lo)/6/5)*5);
+  let svgs='<svg viewBox="0 0 '+VB_W+' '+VB_H+'" preserveAspectRatio="none"><defs><linearGradient id="fillAgg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--mint);stop-opacity:.22"/><stop offset="1" style="stop-color:var(--mint);stop-opacity:0"/></linearGradient></defs>';
+  for(let v=lo;v<=hi;v+=step){ svgs+='<line class="grid" x1="'+PADL+'" y1="'+Y(v)+'" x2="'+(VB_W-PADR)+'" y2="'+Y(v)+'"/><text class="axis-label" x="'+(PADL-10)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+Math.round(v)+'</text>'; }
+  const pts=list.map(s=>X(s.date)+','+Y(s.kg));
+  if(list.length>1){ svgs+='<path fill="url(#fillAgg)" d="M'+X(list[0].date)+','+(VB_H-PADB)+' L'+pts.join(' L')+' L'+X(list[list.length-1].date)+','+(VB_H-PADB)+' Z"/><polyline class="line" points="'+pts.join(' ')+'"/>'; }
+  list.forEach(s=> svgs+='<circle class="dot" cx="'+X(s.date)+'" cy="'+Y(s.kg)+'" r="4.5"/>');
+  svgs+='<text class="xlab" x="'+PADL+'" y="'+(VB_H-6)+'" text-anchor="start">'+fmtDate(list[0].date)+'</text><text class="xlab" x="'+(VB_W-PADR)+'" y="'+(VB_H-6)+'" text-anchor="end">today</text></svg>';
+  plot.innerHTML=svgs;
+  const d= list.length>=2? r1(list[list.length-1].kg-list[0].kg):0;
+  cap.innerHTML= list.length>=2? (d>=0?'+':'')+d+' '+unitLabel+' <span class="mu">· '+(active==='ALL'?'all time':'in '+active)+'</span>' : 'one data point here';
+}
+function drawVolumeChart(){
+  const all=aggregateVolumeByDate();
+  const list=all.filter(s=>daysAgo(s.date)<=RANGES[statsRangeKey]);
+  drawAggChart(list, statsRangeKey, STATE.unit);
+  const total=r1(list.reduce((a,s)=>a+s.kg,0));
+  const avg=list.length? r1(total/list.length):0;
+  $('#statsRow').innerHTML='<div class="stat"><div class="k">Days logged</div><div class="v">'+list.length+'</div></div><div class="stat"><div class="k">Avg / day</div><div class="v up">'+avg+'</div></div><div class="stat"><div class="k">Total</div><div class="v gold">'+Math.round(total)+'</div></div>';
+}
+function drawExerciseChart(id){
+  const all=(STATE.history[id]||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const list=all.filter(s=>!s.off && daysAgo(s.date)<=RANGES[statsRangeKey]);
+  drawAggChart(list, statsRangeKey, STATE.unit);
+  const best=list.length?Math.max(...list.map(s=>s.kg)):0;
+  $('#statsRow').innerHTML='<div class="stat"><div class="k">Sessions</div><div class="v">'+list.length+'</div></div><div class="stat"><div class="k">Best</div><div class="v gold">'+best+' '+STATE.unit+'</div></div><div class="stat"><div class="k">Lift</div><div class="v" style="font-size:14px">'+escapeHtml((STATE.exerciseNames&&STATE.exerciseNames[id])||id)+'</div></div>';
+}
+function drawSessionsCal(){
+  const plot=$('#statsPlot'), cap=$('#statsCap');
+  plot.style.aspectRatio='auto';
+  const days=84;
+  const set=new Set(STATE.finishedDates||[]);
+  let cells='';
+  for(let i=days-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=ymd(d); cells+='<span class="cd'+(set.has(k)?' on':'')+'" title="'+k+'"></span>'; }
+  plot.innerHTML='<div class="cal">'+cells+'</div>';
+  cap.innerHTML=[...set].filter(k=>daysAgo(k)<=days).length+' session(s) in the last '+days+' days <span class="mu">· current streak '+currentStreak()+'</span>';
+  $('#statsRow').innerHTML='<div class="stat"><div class="k">Streak</div><div class="v gold">'+currentStreak()+'</div></div><div class="stat"><div class="k">Total sessions</div><div class="v">'+set.size+'</div></div><div class="stat"><div class="k">Lifts tracked</div><div class="v">'+Object.keys(STATE.exerciseNames||{}).length+'</div></div>';
 }
 
 /* ---- inlined backdrop particles (self-contained) ------------------ */
@@ -1270,7 +1484,11 @@ function spawnParticles(root){
   STATE.templates = STATE.templates || [];
   STATE.history = STATE.history || {};
   STATE.deloadOverrides = STATE.deloadOverrides || {};
+  STATE.exerciseNames = STATE.exerciseNames || {};
+  STATE.shortTermGoal = STATE.shortTermGoal || '';
+  STATE.photos = STATE.photos || [];
   render(); wireFresh();
+  renderGoalBubble(); renderPhotos(); wirePhotoUpload(); renderStatsPicker(); drawStatsSection();
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
 })();
 </script>

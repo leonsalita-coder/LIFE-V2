@@ -34,6 +34,8 @@ const SHIM = `<script>
     else if (m.type === 'generateWorkout:error') p.reject(new Error(m.reason || 'generate_failed'));
     else if (m.type === 'getInsight:result') p.resolve(m.note);
     else if (m.type === 'getInsight:error') p.reject(new Error(m.reason || 'insight_failed'));
+    else if (m.type === 'addProgressPhoto:result') p.resolve({ url: m.url, analysis: m.analysis });
+    else if (m.type === 'addProgressPhoto:error') p.reject(new Error(m.reason || 'photo_failed'));
   });
   function call(type, extra) {
     return new Promise(function (resolve, reject) {
@@ -61,6 +63,7 @@ const SHIM = `<script>
     classify: function (name) { return call('classify', { name: name }); },
     generateWorkout: function (opts) { return call('generateWorkout', opts || {}); },
     getInsight: function (opts) { return call('getInsight', opts || {}); },
+    addProgressPhoto: function (opts) { return call('addProgressPhoto', opts || {}); },
     read: function (slot) { return call('read', { slot: slot }); },
     report: function (stream) {
       parent.postMessage({ source: 'vitality-tile', type: 'report', stream: stream }, '*');

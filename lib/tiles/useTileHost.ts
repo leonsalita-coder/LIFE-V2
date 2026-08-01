@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { tileStore } from './tileStore'
 import { syncEnabled, syncSave, syncLoad } from '@/lib/sync'
+import { supa } from './tileSupabase'
 
 /**
  * useTileHost is the host side of the Vitality bridge, fixed for MANY tiles.
@@ -204,6 +205,47 @@ export function useTileHost(
           }
         } catch {
           src.postMessage({ source: 'vitality-host', type: 'getInsight:error', id: msg.id, reason: 'fetch_failed' }, '*')
+        }
+        return
+      }
+
+      // Progress photo — the host (not the sealed tile) uploads the image
+      // bytes straight to the owner's own Supabase Storage bucket
+      // (progress-photos, from supabase/photos.sql) using the same anon-key
+      // client every other Supabase write in this app uses, then asks
+      // /api/coach/photo for one training-relevant observation. If Storage
+      // isn't set up yet the upload just no-ops (url stays null) — the tile
+      // shows that plainly rather than pretending it saved.
+      if (msg.type === 'addProgressPhoto') {
+        try {
+          const base64 = String(msg.base64 || '')
+          const mime = String(msg.mime || 'image/jpeg')
+          if (!base64) {
+            src.postMessage({ source: 'vitality-host', type: 'addProgressPhoto:error', id: msg.id, reason: 'no_image' }, '*')
+            return
+          }
+          let url: string | null = null
+          const c = supa()
+          if (c) {
+            try {
+              const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0))
+              const ext = mime.split('/')[1] || 'jpg'
+              const path = userId + '/' + Date.now() + '.' + ext
+              const { error: upErr } = await c.storage.from('progress-photos').upload(path, bytes, { contentType: mime })
+              if (!upErr) url = c.storage.from('progress-photos').getPublicUrl(path).data?.publicUrl ?? null
+            } catch {
+              url = null
+            }
+          }
+          const r = await fetch('/api/coach/photo', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ base64, mime, goal: msg.goal }),
+          })
+          const j = await r.json()
+          src.postMessage({ source: 'vitality-host', type: 'addProgressPhoto:result', id: msg.id, url, analysis: typeof j?.analysis === 'string' ? j.analysis : null }, '*')
+        } catch {
+          src.postMessage({ source: 'vitality-host', type: 'addProgressPhoto:error', id: msg.id, reason: 'fetch_failed' }, '*')
         }
         return
       }
