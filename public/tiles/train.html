@@ -596,10 +596,49 @@ function renderFinish(session){
   };
   renderInsight(session);
 }
+/* ---- plateau detection: deterministic, computed here (not left to the
+   AI to eyeball from a text dump) — weight AND reps both flat-or-down
+   across the last WINDOW real sessions. Needs one extra session beyond
+   the window so a plateau is never called from someone's very first
+   few times logging a lift. */
+function detectPlateau(e){
+  const WINDOW=3;
+  const h=histFor(e).filter(s=>!s.off);
+  if(h.length<WINDOW+1) return null;
+  const recent=h.slice(-WINDOW);
+  const weights=recent.map(s=>s.kg);
+  const flatOrDown=weights.every((w,i)=> i===0 || w<=weights[i-1]);
+  const topReps=s=>Math.max(0,...(s.sets||[]).filter(x=>!x.fail).map(x=>x.r||0));
+  const reps=recent.map(topReps);
+  const repsFlatOrDown=reps.every((r,i)=> i===0 || r<=reps[i-1]);
+  if(flatOrDown && repsFlatOrDown) return { sessions:WINDOW, weight:weights[weights.length-1] };
+  return null;
+}
+/* ---- recovery cross-reference: Vitals is a whitelisted cross-tile read
+   (window.Vitality.read), same recovery formula Vitals itself uses
+   (whoopRecovery wins; else 0.6·feel + 0.4·sleep-scaled). Averaged over
+   the last week so one bad night doesn't skew it. */
+function vitalsRecoverySignal(v){
+  if(!v || typeof v!=='object') return null;
+  const dates=Object.keys(v).sort().slice(-7);
+  if(!dates.length) return null;
+  const scores=dates.map(k=>{
+    const d=v[k]||{};
+    if(typeof d.whoopRecovery==='number') return Math.max(1,Math.min(99,Math.round(d.whoopRecovery)));
+    const parts=[], w=[];
+    if(typeof d.feel==='number'){ parts.push(Math.max(0,Math.min(100,d.feel))); w.push(0.6); }
+    if(typeof d.sleepHours==='number'){ parts.push(Math.max(0,Math.min(1,d.sleepHours/8))*100); w.push(0.4); }
+    if(!parts.length) return null;
+    const tw=w.reduce((a,b)=>a+b,0);
+    return Math.round(parts.reduce((a,p,i)=>a+p*w[i],0)/tw);
+  }).filter(n=>n!=null);
+  if(!scores.length) return null;
+  return { avg:Math.round(scores.reduce((a,b)=>a+b,0)/scores.length), days:scores.length };
+}
 /* ---- post-session note: one honest observation, computed once per
    finished session and cached — this is the mentor's "noticer" role,
    automated for Train. Silent on failure; it's a bonus, not core flow. */
-function buildInsightDigest(session){
+async function buildInsightDigest(session){
   const lines=[];
   lines.push('Streak: '+currentStreak()+' consecutive day(s).');
   const t=sessionTotals(session);
@@ -608,18 +647,24 @@ function buildInsightDigest(session){
     const h=histFor(e).filter(s=>!s.off);
     const misses=e.log.filter(s=>s&&s.fail).length;
     const pr=exHasPR(e)?' (PR today)':'';
+    const plateau=detectPlateau(e);
     if(h.length>=2){
       const delta=r1(h[h.length-1].kg-h[0].kg);
-      lines.push('- '+e.name+': '+h.length+' sessions on record, '+(delta>=0?'+':'')+delta+' '+STATE.unit+' over that span, '+misses+' missed set(s) today'+pr+'.');
+      lines.push('- '+e.name+': '+h.length+' sessions on record, '+(delta>=0?'+':'')+delta+' '+STATE.unit+' over that span, '+misses+' missed set(s) today'+pr+(plateau?' — PLATEAU: weight and reps flat for the last '+plateau.sessions+' sessions at '+plateau.weight+' '+STATE.unit+'.':'.'));
     } else {
       lines.push('- '+e.name+': first time logging this, '+misses+' missed set(s) today'+pr+'.');
     }
   });
+  try{
+    const vitals=await window.Vitality.read('vitals');
+    const rec=vitalsRecoverySignal(vitals);
+    if(rec) lines.push('Recovery (Vitals, '+rec.days+'-day avg): '+rec.avg+'/100.');
+  }catch(e){ /* Vitals not available — the note still works without it */ }
   return lines.join('\n');
 }
 async function fetchInsight(session){
   try{
-    const digest=buildInsightDigest(session);
+    const digest=await buildInsightDigest(session);
     const note=await window.Vitality.getInsight({ goal:ATHLETE_GOAL, digest });
     session.insight={ date:today, text:(typeof note==='string'&&note.trim())?note.trim():null };
   }catch(err){ session.insight={ date:today, text:null }; }
