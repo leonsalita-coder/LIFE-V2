@@ -26,7 +26,7 @@
     --font-mono:ui-monospace,SFMono-Regular,Menlo,"JetBrains Mono",monospace;
     --vt-sans:var(--font-display); --vt-mono:var(--font-mono); --vt-serif:Georgia,"Times New Roman",serif;
     --font-serif:Georgia,"Times New Roman",serif; --serif:Georgia,"Times New Roman",serif; --sans:var(--font-display);
-    --spring: cubic-bezier(.34,1.56,.64,1); --ease: cubic-bezier(.2,.8,.2,1);
+    --spring: cubic-bezier(.34,1.56,.64,1); --ease: cubic-bezier(.2,.8,.2,1); --premium: cubic-bezier(.16,1,.3,1);
     --radius-lg:12px; --radius-pill:999px;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -82,7 +82,7 @@
   .ptrack { height:5px; border-radius:999px; background: rgba(255,255,255,.07); overflow:hidden; }
   .pfill { height:100%; border-radius:999px; background: linear-gradient(90deg,#3ddc97,#a7f3d0); transition: width .5s var(--ease); }
   .plabel { font-family: var(--serif); font-style:italic; font-size:14px; color: var(--muted); margin-top:9px; }
-  .plabel b { color: var(--text); font-weight:500; }
+  .plabel b { color: var(--text); font-weight:700; font-family: var(--vt-mono); font-style:normal; font-variant-numeric: tabular-nums; letter-spacing:-0.01em; }
 
   /* warm-up / cooldown checklists */
   .wcSection { margin-top:16px; }
@@ -204,7 +204,7 @@
   .restStep { background:none; border:1px solid var(--hair); color: var(--text); border-radius:999px; padding:5px 11px; cursor:pointer; font-size:12px; font-variant-numeric: tabular-nums; transition: border-color .15s; }
   .restStep:hover { border-color: var(--mint); }
   .restMid { text-align:center; min-width:108px; }
-  .restTime { font-family: var(--serif); font-style:italic; font-size:20px; color: var(--mint); font-variant-numeric: tabular-nums; }
+  .restTime { font-family: var(--vt-mono); font-weight:700; font-size:19px; color: var(--mint); font-variant-numeric: tabular-nums; letter-spacing:-0.01em; }
   .restbar.over .restTime { color: var(--gold); }
   .restLabel { font-family: var(--vt-mono); font-size:9px; letter-spacing:.14em; text-transform:uppercase; color: var(--muted); margin-top:1px; }
   .restX { background:none; border:none; color: var(--muted); cursor:pointer; font-size:18px; line-height:1; padding:2px 5px; }
@@ -262,7 +262,7 @@
   .photoBtnRow .addLift { flex:1; }
   .ovGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:10px; }
   .ovCard { border:1px solid var(--line); border-radius:14px; padding:16px 12px; text-align:center; }
-  .ovNum { font-family:var(--serif); font-style:italic; font-size:24px; font-weight:500; line-height:1; }
+  .ovNum { font-family:var(--vt-mono); font-style:normal; font-size:25px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
   .ovNum.gold { color:var(--gold); }
   .ovNum.mint { color:var(--mint); }
   .ovLbl { font-family:var(--vt-mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:8px; }
@@ -284,9 +284,9 @@
   .insightBox { margin-top:12px; text-align:center; font-family: var(--serif); font-style:italic; font-size:13.5px; color: var(--mint); line-height:1.5; }
 
   /* ── popups (history / form / swap / tune / overflow menu) ─────────── */
-  .scrim { position:fixed; inset:0; z-index:60; display:flex; align-items:flex-start; justify-content:center; padding: max(20px, env(safe-area-inset-top)) 14px 40px; overflow-y:auto; background: rgba(0,0,0,.28); opacity:0; animation: scrimIn .18s var(--ease) forwards; }
-  @keyframes scrimIn { to { opacity:1; } }
-  .pop { width:100%; max-width:520px; margin:auto; background: var(--card); border:1px solid var(--line); border-radius: var(--radius-lg); padding:24px 22px 26px; position:relative; backdrop-filter: blur(20px) saturate(1.2); -webkit-backdrop-filter: blur(20px) saturate(1.2); box-shadow:0 30px 80px rgba(0,0,0,.55); opacity:0; transform: translateY(12px) scale(.985); animation: popIn .42s var(--spring) forwards; }
+  .scrim { position:fixed; inset:0; z-index:60; display:flex; align-items:flex-start; justify-content:center; padding: max(20px, env(safe-area-inset-top)) 14px 40px; overflow-y:auto; background: rgba(0,0,0,.28); backdrop-filter: blur(0px); opacity:0; animation: scrimIn .28s var(--premium) forwards; }
+  @keyframes scrimIn { to { opacity:1; backdrop-filter: blur(2px); } }
+  .pop { width:100%; max-width:520px; margin:auto; background: var(--card); border:1px solid var(--line); border-radius: var(--radius-lg); padding:24px 22px 26px; position:relative; backdrop-filter: blur(20px) saturate(1.2); -webkit-backdrop-filter: blur(20px) saturate(1.2); box-shadow:0 30px 80px rgba(0,0,0,.55); opacity:0; transform: translateY(8px) scale(.97); animation: popIn .32s var(--premium) forwards; }
   @keyframes popIn { to { opacity:1; transform:none; } }
   .popHead { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
   .popTitle { font-family: var(--serif); font-style:italic; font-size:28px; font-weight:500; line-height:1.05; letter-spacing:-0.01em; margin-top:6px; }
@@ -309,12 +309,12 @@
   .dot { fill: var(--mint); stroke: var(--card); stroke-width:3; }
   .dot.best { fill: var(--gold); }
   .dot.off { fill: var(--muted); }
-  .delta-cap { text-align:center; font-family: var(--serif); font-style:italic; font-size:14px; color: var(--mint); margin-top:8px; }
+  .delta-cap { text-align:center; font-family: var(--vt-mono); font-weight:700; font-size:14px; color: var(--mint); margin-top:8px; font-variant-numeric: tabular-nums; }
   .delta-cap .mu { color: var(--muted); }
   .stats { display:flex; margin-top:20px; padding-top:18px; border-top:1px solid var(--line); }
   .stat { flex:1; text-align:center; }
   .stat .k { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color: var(--muted); font-weight:600; }
-  .stat .v { font-family: var(--serif); font-style:italic; font-size:23px; font-weight:500; margin-top:8px; }
+  .stat .v { font-family: var(--vt-mono); font-style:normal; font-size:21px; font-weight:700; margin-top:8px; font-variant-numeric: tabular-nums; letter-spacing:-0.01em; }
   .stat .v.up { color: var(--mint); } .stat .v.gold { color: var(--gold); }
   table.hist { width:100%; border-collapse:collapse; margin-top:22px; }
   table.hist th { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color: var(--muted); font-weight:600; padding:0 0 13px; text-align:right; }
@@ -471,14 +471,25 @@
   .pfill.pulse { animation: pfillPulse .7s var(--ease); }
   .mbFill, .wdFill { transition: width .6s var(--spring), height .6s var(--spring); box-shadow: 0 0 8px rgba(110,231,183,.28); }
 
-  /* ---- scroll reveal — the lower sheets fade up into place as you scroll,
-     once, never re-hiding on the way back up (that reads as flicker, not polish) */
+  /* ---- charts: the line draws itself in, the fill breathes in after it,
+     dots pop in with a short stagger (capped, so a 100-point chart doesn't
+     take forever) — every chart in the tile shares these three classes */
+  .line { stroke-dasharray: 2500; stroke-dashoffset: 2500; animation: lineDraw 1s var(--premium) forwards; }
+  @keyframes lineDraw { to { stroke-dashoffset: 0; } }
+  .area { opacity: 0; animation: areaFade .5s var(--ease) .55s forwards; }
+  @keyframes areaFade { to { opacity: 1; } }
+  .dot { opacity: 0; transform-box: fill-box; transform-origin: center; animation: dotPop .4s var(--spring) forwards; animation-delay: calc(min(var(--i, 0), 24) * 28ms + .45s); }
+  @keyframes dotPop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+
+  /* ---- reveal: the lower sheets fade up into place on load, staggered
+     (see wireReveal() — this is a guaranteed entrance, not scroll-triggered) */
   .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
   .reveal.in { opacity: 1; transform: none; }
 
   @media (prefers-reduced-motion: reduce) {
     .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
     .pfill.pulse { animation: none !important; }
+    .line, .area, .dot { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; transform: none !important; }
     .ovCard:hover, .swapItem:hover, .photoCard:hover, .addLift:hover .addLiftRing, .finishBtn:hover { transform: none !important; box-shadow: none !important; }
   }
 </style>
@@ -498,14 +509,14 @@
     <div class="daydots" id="daydots"></div>
     <div class="dayhead">
       <h1 class="daytitle" id="daytitle">Today</h1>
-      <button class="moonbtn" id="genbtn" title="Talk to your coach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>generate</span></button>
-      <button class="moonbtn" id="moonbtn" title="Mark today a rest day"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>rest day</span></button>
+      <button class="moonbtn" id="genbtn" title="Talk to your coach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>Generate</span></button>
+      <button class="moonbtn" id="moonbtn" title="Mark today a rest day"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Rest day</span></button>
     </div>
     <div class="progress" id="progress"><div class="ptrack"><div class="pfill" id="pfill"><span class="pcomet"></span></div></div><div class="plabel" id="plabel"></div></div>
     <div class="wcSection" id="warmupSlot"></div>
     <div class="exwrap" id="exwrap"></div>
     <div class="wcSection" id="cooldownSlot"></div>
-    <div class="finishRow"><button class="finishBtn" id="finishBtn">finish session</button></div>
+    <div class="finishRow"><button class="finishBtn" id="finishBtn">Finish session</button></div>
     <button class="freshbtn" id="freshbtn">Start fresh</button>
     <p class="store-note">Saved to your Vitality dashboard.</p>
   </div>
@@ -521,14 +532,14 @@
     <input type="file" id="photoInput" accept="image/*" style="display:none" />
     <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" />
     <div class="photoBtnRow">
-      <button class="addLift" id="takePhotoBtn"><span class="addLiftRing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="addLiftLabel">take a photo</span></button>
-      <button class="addLift" id="addPhotoBtn"><span class="addLiftRing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="addLiftLabel">from library</span></button>
+      <button class="addLift" id="takePhotoBtn"><span class="addLiftRing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="addLiftLabel">Take a photo</span></button>
+      <button class="addLift" id="addPhotoBtn"><span class="addLiftRing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="addLiftLabel">From library</span></button>
     </div>
     <div id="photoStatus" class="photoStatus"></div>
   </div>
 
   <div class="sheet reveal" id="statsSheet">
-    <div class="eyebrow" style="display:flex;align-items:center;justify-content:space-between">Progress<button class="photoX" id="exportCsvBtn" title="Export CSV" style="font-size:11px;font-family:var(--vt-mono);letter-spacing:.08em;text-transform:uppercase">export ⇩</button></div>
+    <div class="eyebrow" style="display:flex;align-items:center;justify-content:space-between">Progress<button class="photoX" id="exportCsvBtn" title="Export CSV" style="font-size:11px;font-family:var(--vt-mono);letter-spacing:.08em;text-transform:uppercase">Export ⇩</button></div>
     <div class="ovGrid" id="overviewCards"></div>
     <div class="swapList" id="statsPicker" style="margin-top:16px"></div>
     <div class="range" id="statsRange"></div>
@@ -702,7 +713,7 @@ function renderBody(){
   wrap.innerHTML='';
   sortedEx(session).forEach(e=>{ wrap.appendChild(renderCard(e, session)); });
   const add=document.createElement('button'); add.className='addLift';
-  add.innerHTML='<span class="addLiftRing">'+svg('<path d="M12 5v14M5 12h14"/>')+'</span><span class="addLiftLabel">add a lift</span>';
+  add.innerHTML='<span class="addLiftRing">'+svg('<path d="M12 5v14M5 12h14"/>')+'</span><span class="addLiftLabel">Add a lift</span>';
   add.onclick=()=> openSwap(null);
   wrap.appendChild(add);
   renderChecklist('#cooldownSlot', session.cooldown, 'cool', 'Cooldown');
@@ -735,8 +746,8 @@ function wireRestPanel(){ const u=$('#undoOff'); if(u) u.onclick=()=>{ curSessio
 
 function renderFinish(session){
   const btn=$('#finishBtn'); const t=sessionTotals(session);
-  if(STATE.submitted){ btn.textContent='re-lock session'; btn.classList.add('locked'); btn.disabled=false; }
-  else { btn.textContent='finish session'; btn.classList.remove('locked'); btn.disabled = t.logged===0; }
+  if(STATE.submitted){ btn.textContent='Re-lock session'; btn.classList.add('locked'); btn.disabled=false; }
+  else { btn.textContent='Finish session'; btn.classList.remove('locked'); btn.disabled = t.logged===0; }
   btn.onclick=()=>{
     STATE.submitted=!STATE.submitted;
     if(STATE.submitted){
@@ -887,9 +898,9 @@ function renderCard(e, session){
     + (e.note?'<div class="exNote"><span class="ndot">•</span><span>'+escapeHtml(e.note)+'</span></div>':'')
     + '<div class="collapsedNote">'+exDoneCount(e)+' of '+e.log.length+' sets logged · tap the eye to expand</div>'
     + '<div class="exActions">'
-    +   '<button class="actionPill" data-act="swap">'+svg(IC.swap,' fill="none" stroke="currentColor"')+'<span class="pl">swap</span></button>'
-    +   '<button class="actionPill" data-act="history">'+svg(IC.history,' fill="none" stroke="currentColor"')+'<span class="pl">history</span></button>'
-    +   '<button class="actionPill" data-act="tune">'+svg(IC.tune,' fill="none" stroke="currentColor"')+'<span class="pl">tune</span></button>'
+    +   '<button class="actionPill" data-act="swap">'+svg(IC.swap,' fill="none" stroke="currentColor"')+'<span class="pl">Swap</span></button>'
+    +   '<button class="actionPill" data-act="history">'+svg(IC.history,' fill="none" stroke="currentColor"')+'<span class="pl">History</span></button>'
+    +   '<button class="actionPill" data-act="tune">'+svg(IC.tune,' fill="none" stroke="currentColor"')+'<span class="pl">Tune</span></button>'
     + '</div>'
     + '<div class="restSlot"></div>'
     + '<div class="pills"></div>';
@@ -961,9 +972,9 @@ function renderPill(e, rx, idx){
     + '<div class="pillActions">'
     + (logged
         ? '<span class="pillStatus">'+(pr?'<span class="pillPr">★ </span>':'')+status+'</span>'
-          + (kind==='done'?'<button class="pillDrop" aria-label="Add drop set">+ drop</button>':'')
+          + (kind==='done'?'<button class="pillDrop" aria-label="Add drop set">+ Drop</button>':'')
           + '<button class="pillReset" aria-label="Undo set">'+IC_reset()+'</button>'
-        : '<button class="pillHit" aria-label="Log set">hit it →</button><button class="pillMiss" aria-label="Mark missed">miss</button>')
+        : '<button class="pillHit" aria-label="Log set">Hit it →</button><button class="pillMiss" aria-label="Mark missed">Miss</button>')
     + '</div>';
   const wIn=row.querySelector('.w'), rIn=row.querySelector('.r');
   const commit=()=>{ const kg=parseFloat(wIn.value); const reps=Math.round(parseFloat(rIn.value)); if(!Number.isFinite(kg)||kg<0||!Number.isFinite(reps)||reps<0) return; if(reps===0){ doLog(e, idx, kg, 0, true); } else { doLog(e, idx, kg, reps, false); } };
@@ -1151,8 +1162,9 @@ function drawChart(e, list, active){
   for(let kg=lo;kg<=hi;kg+=step){ svgs+='<line class="grid" x1="'+PADL+'" y1="'+Y(kg)+'" x2="'+(VB_W-PADR)+'" y2="'+Y(kg)+'"/><text class="axis-label" x="'+(PADL-10)+'" y="'+(Y(kg)+4)+'" text-anchor="end">'+kg+'</text>'; }
   if(real.length){ const pts=real.map(s=>X(s.date)+','+Y(s.kg)); const last=real[real.length-1], first=real[0];
     if(real.length>1){ svgs+='<path class="area" d="M'+X(first.date)+','+(VB_H-PADB)+' L'+pts.join(' L')+' L'+X(last.date)+','+(VB_H-PADB)+' Z"/><polyline class="line" points="'+pts.join(' ')+'"/>'; } }
-  off.forEach(s=>{ svgs+='<circle class="dot off" cx="'+X(s.date)+'" cy="'+Y(s.kg)+'" r="5"/>'; });
-  real.forEach(s=>{ svgs+='<circle class="dot'+(best&&s.date===best.date?' best':'')+'" cx="'+X(s.date)+'" cy="'+Y(s.kg)+'" r="5"/>'; });
+  let dotI=0;
+  off.forEach(s=>{ svgs+='<circle class="dot off" style="--i:'+(dotI++)+'" cx="'+X(s.date)+'" cy="'+Y(s.kg)+'" r="5"/>'; });
+  real.forEach(s=>{ svgs+='<circle class="dot'+(best&&s.date===best.date?' best':'')+'" style="--i:'+(dotI++)+'" cx="'+X(s.date)+'" cy="'+Y(s.kg)+'" r="5"/>'; });
   svgs+='<text class="xlab" x="'+PADL+'" y="'+(VB_H-6)+'" text-anchor="start">'+fmtDate(list[0].date)+'</text><text class="xlab" x="'+(VB_W-PADR)+'" y="'+(VB_H-6)+'" text-anchor="end">today</text></svg>';
   plot.innerHTML=svgs;
   if(real.length>=2){ const d=r1(real[real.length-1].kg-real[0].kg); cap.innerHTML=(d>=0?'+':'')+d+' '+STATE.unit+' <span class="mu">· '+(active==='ALL'?'all time':'in '+active)+'</span>'; }
@@ -1162,7 +1174,9 @@ function drawStats(e){
   const real=histFor(e).filter(s=>!s.off);
   const best=real.length?Math.max(...real.map(s=>s.kg)):0;
   const w30=real.filter(s=>daysAgo(s.date)<=30); const d30=w30.length>=2?r1(w30[w30.length-1].kg-w30[0].kg):0;
-  $('#hstats').innerHTML='<div class="stat"><div class="k">Sessions</div><div class="v">'+real.length+'</div></div><div class="stat"><div class="k">Last 30 days</div><div class="v up">'+(d30>=0?'+':'')+d30+' '+STATE.unit+'</div></div><div class="stat"><div class="k">Best</div><div class="v gold">'+best+' '+STATE.unit+'</div></div>';
+  const hstats=$('#hstats');
+  hstats.innerHTML='<div class="stat"><div class="k">Sessions</div><div class="v">'+real.length+'</div></div><div class="stat"><div class="k">Last 30 days</div><div class="v up">'+(d30>=0?'+':'')+d30+' '+STATE.unit+'</div></div><div class="stat"><div class="k">Best</div><div class="v gold">'+best+' '+STATE.unit+'</div></div>';
+  animateCounts(hstats);
 }
 function drawTable(e, all){
   const body=$('#hbody');
@@ -1312,7 +1326,7 @@ function openTune(e){
     + stepRow('Sets','tsets', draft.sets)
     + stepRow('Reps','treps', draft.reps)
     + stepRow('Rest','trest', mmss(draft.rest))
-    + '<div class="popBtns"><button class="pbtn ghost" id="tcancel">cancel</button><button class="pbtn save" id="tsave">save</button></div>',
+    + '<div class="popBtns"><button class="pbtn ghost" id="tcancel">Cancel</button><button class="pbtn save" id="tsave">Save</button></div>',
     scrim=>{
       const sync=()=>{ scrim.querySelector('#tsets .stepVal').textContent=draft.sets; scrim.querySelector('#treps .stepVal').textContent=draft.reps; scrim.querySelector('#trest .stepVal').textContent=mmss(draft.rest); };
       scrim.querySelector('#tw').oninput=ev=>{ const v=parseFloat(ev.target.value); if(Number.isFinite(v)) draft.kg=v; };
@@ -1366,7 +1380,7 @@ function openNote(e){
   const card=document.querySelector('.ex[data-id="'+e.id+'"]'); if(!card) return;
   const meta=card.querySelector('.exMeta');
   const ed=document.createElement('div'); ed.className='noteEdit';
-  ed.innerHTML='<input id="noteIn" placeholder="A note for this lift" value="'+escapeHtml(e.note||'')+'"><button id="noteSave">save</button>';
+  ed.innerHTML='<input id="noteIn" placeholder="A note for this lift" value="'+escapeHtml(e.note||'')+'"><button id="noteSave">Save</button>';
   meta.insertAdjacentElement('afterend', ed);
   const inp=ed.querySelector('#noteIn'); inp.focus();
   const save=()=>{ e.note=inp.value.trim(); render(); };
@@ -1547,6 +1561,44 @@ function renderOverviewCards(){
     { n:Object.keys(STATE.exerciseNames||{}).length, l:'Exercises tracked', c:'mint' },
   ];
   el.innerHTML = cards.map(c=>'<div class="ovCard"><div class="ovNum '+c.c+'">'+c.n+'</div><div class="ovLbl">'+c.l+'</div></div>').join('');
+  animateCounts(el);
+}
+/* ---- count-up: reads the number a stat card/row already rendered and
+   animates it up from 0. Purely cosmetic — the final text is always the
+   exact string the render function produced, decimals and commas intact. */
+function animateCounts(root){
+  if(!root || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  root.querySelectorAll('.ovNum, .stat .v').forEach(el=>{
+    const raw=el.textContent.trim();
+    const m=raw.match(/^([+-]?)([\d,]+(?:\.\d+)?)/);
+    if(!m) return;
+    const sign=m[1]||'', digits=m[2];
+    const target=parseFloat(digits.replace(/,/g,''));
+    if(!Number.isFinite(target)) return;
+    const suffix=raw.slice(m[0].length);
+    const decimals=(digits.split('.')[1]||'').length;
+    const dur=750, start=performance.now();
+    (function tick(now){
+      const p=Math.min(1,(now-start)/dur);
+      const eased=1-Math.pow(1-p,3);
+      const cur=target*eased;
+      el.textContent=sign+(decimals?cur.toFixed(decimals):Math.round(cur).toLocaleString())+suffix;
+      if(p<1) requestAnimationFrame(tick); else el.textContent=raw;
+    })(start);
+  });
+}
+/* ---- bar grow-in: renders start at 0 and animate to their real size on
+   the next frame, so the .mbFill/.wdFill width/height transition (defined
+   in the redesign layer) actually has something to animate FROM. */
+function growBars(root){
+  if(!root) return;
+  const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const bars=[...root.querySelectorAll('[data-w], [data-h]')];
+  if(!bars.length) return;
+  if(reduced){ bars.forEach(b=>{ if(b.dataset.w!=null) b.style.width=b.dataset.w+'%'; if(b.dataset.h!=null) b.style.height=b.dataset.h+'%'; }); return; }
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    bars.forEach((b,i)=> setTimeout(()=>{ if(b.dataset.w!=null) b.style.width=b.dataset.w+'%'; if(b.dataset.h!=null) b.style.height=b.dataset.h+'%'; }, i*45));
+  }));
 }
 function exportCSV(){
   const rows=[['date','exercise','weight_'+STATE.unit,'reps_per_set']];
@@ -1590,12 +1642,13 @@ function drawStatsSection(){
     rangeEl.innerHTML=Object.keys(RANGES).map(k=>'<button class="'+(k===statsRangeKey?'on':'')+'" data-r="'+k+'">'+k+'</button>').join('');
     rangeEl.querySelectorAll('button').forEach(b=> b.onclick=()=>{ statsRangeKey=b.dataset.r; drawStatsSection(); });
   }
-  if(statsView.id==='__sessions') return drawSessionsCal();
-  if(statsView.id==='__volume') return drawVolumeChart();
-  if(statsView.id==='__records') return drawRecords();
-  if(statsView.id==='__muscles') return drawMuscles();
-  if(statsView.id==='__goals') return drawGoals();
-  return drawExerciseChart(statsView.id);
+  if(statsView.id==='__sessions') drawSessionsCal();
+  else if(statsView.id==='__volume') drawVolumeChart();
+  else if(statsView.id==='__records') drawRecords();
+  else if(statsView.id==='__muscles') drawMuscles();
+  else if(statsView.id==='__goals') drawGoals();
+  else drawExerciseChart(statsView.id);
+  animateCounts($('#statsRow'));
 }
 function drawRecords(){
   const plot=$('#statsPlot'), cap=$('#statsCap');
@@ -1619,7 +1672,8 @@ function drawMuscles(){
   const data=muscleVolumeBreakdown();
   if(!data.length){ plot.innerHTML='<p class="emptyHist">No data yet — muscle groups come from exercises the AI has classified.</p>'; cap.textContent=''; $('#statsRow').innerHTML=''; return; }
   const max=Math.max(...data.map(d=>d.vol),1);
-  plot.innerHTML='<div class="muscleBars">'+data.map(d=>'<div class="mbRow"><span class="mbLbl">'+escapeHtml(d.m)+'</span><div class="mbTrack"><div class="mbFill" style="width:'+Math.round(d.vol/max*100)+'%"></div></div><span class="mbVal">'+Math.round(d.vol)+'</span></div>').join('')+'</div>';
+  plot.innerHTML='<div class="muscleBars">'+data.map(d=>'<div class="mbRow"><span class="mbLbl">'+escapeHtml(d.m)+'</span><div class="mbTrack"><div class="mbFill" data-w="'+Math.round(d.vol/max*100)+'" style="width:0%"></div></div><span class="mbVal">'+Math.round(d.vol)+'</span></div>').join('')+'</div>';
+  growBars(plot);
   cap.textContent='Volume by primary muscle worked, from AI-classified exercises';
   $('#statsRow').innerHTML='';
 }
@@ -1631,9 +1685,10 @@ function drawGoals(){
     const h=(STATE.history[g.id]||[]).filter(s=>!s.off);
     const cur=h.length?Math.max(...h.map(s=>s.kg)):0;
     const pct=Math.max(0,Math.min(100,Math.round(cur/g.target*100)));
-    return '<div class="goalRow"><div class="goalTop"><span>'+escapeHtml(names[g.id]||g.id)+'</span><span>'+cur+' / '+g.target+' '+STATE.unit+'</span></div><div class="mbTrack"><div class="mbFill" style="width:'+pct+'%"></div></div><button class="photoX" data-i="'+i+'" aria-label="Remove goal">×</button></div>';
+    return '<div class="goalRow"><div class="goalTop"><span>'+escapeHtml(names[g.id]||g.id)+'</span><span>'+cur+' / '+g.target+' '+STATE.unit+'</span></div><div class="mbTrack"><div class="mbFill" data-w="'+pct+'" style="width:0%"></div></div><button class="photoX" data-i="'+i+'" aria-label="Remove goal">×</button></div>';
   }).join('');
-  plot.innerHTML = (rows||'<p class="emptyHist">No lift goals yet.</p>') + '<button class="pbtn ghost" id="addGoalBtn" style="width:100%;margin-top:14px">+ add a lift goal</button>';
+  plot.innerHTML = (rows||'<p class="emptyHist">No lift goals yet.</p>') + '<button class="pbtn ghost" id="addGoalBtn" style="width:100%;margin-top:14px">+ Add a lift goal</button>';
+  growBars(plot);
   plot.querySelectorAll('.photoX').forEach(b=> b.onclick=()=>{ STATE.liftGoals.splice(+b.dataset.i,1); saveState(); drawGoals(); });
   const addBtn=plot.querySelector('#addGoalBtn'); if(addBtn) addBtn.onclick=openAddGoal;
   cap.textContent=''; $('#statsRow').innerHTML='';
@@ -1648,7 +1703,7 @@ function openAddGoal(){
     + '<select id="goalExSel" style="width:100%;background:var(--bg);border:1px solid var(--hair);border-radius:10px;color:var(--text);font:inherit;font-size:14px;padding:11px 12px">'+opts+'</select>'
     + '<div class="secLbl">Target weight ('+STATE.unit+')</div>'
     + '<div class="searchRow"><input id="goalTargetIn" type="number" inputmode="decimal" placeholder="e.g. 225" autocomplete="off"/></div>'
-    + '<div class="popBtns"><button class="pbtn ghost" id="goalCancel">cancel</button><button class="pbtn save" id="goalSave">Save</button></div>',
+    + '<div class="popBtns"><button class="pbtn ghost" id="goalCancel">Cancel</button><button class="pbtn save" id="goalSave">Save</button></div>',
     scrim=>{
       scrim.querySelector('#goalCancel').onclick=closePop;
       scrim.querySelector('#goalSave').onclick=()=>{
@@ -1686,7 +1741,7 @@ function drawAggChart(list, active, unitLabel){
   for(let v=lo;v<=hi;v+=step){ svgs+='<line class="grid" x1="'+PADL+'" y1="'+Y(v)+'" x2="'+(VB_W-PADR)+'" y2="'+Y(v)+'"/><text class="axis-label" x="'+(PADL-10)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+Math.round(v)+'</text>'; }
   const pts=list.map(s=>X(s.date)+','+Y(s.kg));
   if(list.length>1){ svgs+='<path fill="url(#fillAgg)" d="M'+X(list[0].date)+','+(VB_H-PADB)+' L'+pts.join(' L')+' L'+X(list[list.length-1].date)+','+(VB_H-PADB)+' Z"/><polyline class="line" points="'+pts.join(' ')+'"/>'; }
-  list.forEach(s=> svgs+='<circle class="dot" cx="'+X(s.date)+'" cy="'+Y(s.kg)+'" r="4.5"/>');
+  list.forEach((s,i)=> svgs+='<circle class="dot" style="--i:'+i+'" cx="'+X(s.date)+'" cy="'+Y(s.kg)+'" r="4.5"/>');
   svgs+='<text class="xlab" x="'+PADL+'" y="'+(VB_H-6)+'" text-anchor="start">'+fmtDate(list[0].date)+'</text><text class="xlab" x="'+(VB_W-PADR)+'" y="'+(VB_H-6)+'" text-anchor="end">today</text></svg>';
   plot.innerHTML=svgs;
   const d= list.length>=2? r1(list[list.length-1].kg-list[0].kg):0;
@@ -1716,26 +1771,27 @@ function drawSessionsCal(){
   for(let i=days-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=ymd(d); cells+='<span class="cd'+(set.has(k)?' on':'')+'" title="'+k+'"></span>'; }
   const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const counts=weekdayCounts(); const maxC=Math.max(...counts,1);
-  const bars='<div class="wdBars">'+counts.map((c,i)=>'<div class="wdBar"><div class="wdTrack"><div class="wdFill" style="height:'+Math.max(3,Math.round(c/maxC*100))+'%"></div></div><span class="wdLbl">'+WD[i]+'</span></div>').join('')+'</div>';
+  const bars='<div class="wdBars">'+counts.map((c,i)=>'<div class="wdBar"><div class="wdTrack"><div class="wdFill" data-h="'+Math.max(3,Math.round(c/maxC*100))+'" style="height:0%"></div></div><span class="wdLbl">'+WD[i]+'</span></div>').join('')+'</div>';
   plot.innerHTML='<div class="cal">'+cells+'</div>'+bars;
+  growBars(plot);
   const bestDay=WD[counts.indexOf(Math.max(...counts))];
   cap.innerHTML=[...set].filter(k=>daysAgo(k)<=days).length+' session(s) in the last '+days+' days <span class="mu">· strongest day '+bestDay+'</span>';
   $('#statsRow').innerHTML='<div class="stat"><div class="k">Streak</div><div class="v gold">'+currentStreak()+'</div></div><div class="stat"><div class="k">Total sessions</div><div class="v">'+set.size+'</div></div><div class="stat"><div class="k">Lifts tracked</div><div class="v">'+Object.keys(STATE.exerciseNames||{}).length+'</div></div>';
 }
 
-/* ---- scroll reveal: the lower sheets (goal / photos / stats) fade up
-   into place as they enter view. They're static containers — never
-   rebuilt via innerHTML — so one observer at boot is all this needs;
-   each fires once and stays revealed (no flicker on scrolling back up). */
-function wireScrollReveal(){
+/* ---- reveal: the lower sheets (goal / photos / stats) fade up into place
+   on load, staggered. NOT scroll-triggered — this tile's iframe is sized to
+   its own content and the OUTER dashboard page does the scrolling, so an
+   IntersectionObserver in here can never see real scroll progress (it just
+   fires immediately for everything, which reads as no animation at all).
+   A staggered entrance is the honest version of this effect in a sealed,
+   auto-height tile: guaranteed to actually show, every time. */
+function wireReveal(){
   const els=[...document.querySelectorAll('.reveal')];
   if(!els.length) return;
   const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reduced || !('IntersectionObserver' in window)){ els.forEach(el=>el.classList.add('in')); return; }
-  const io=new IntersectionObserver(entries=>{
-    entries.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
-  }, { threshold:0.12 });
-  els.forEach(el=>io.observe(el));
+  if(reduced){ els.forEach(el=>el.classList.add('in')); return; }
+  els.forEach((el,i)=> setTimeout(()=>el.classList.add('in'), 120+i*130));
 }
 
 /* ---- inlined backdrop particles (self-contained) ------------------ */
@@ -1774,7 +1830,7 @@ function spawnParticles(root){
   renderGoalBubble(); renderPhotos(); wirePhotoUpload(); renderOverviewCards(); renderStatsPicker(); drawStatsSection();
   const exportBtn=$('#exportCsvBtn'); if(exportBtn) exportBtn.onclick=exportCSV;
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
-  wireScrollReveal();
+  wireReveal();
 })();
 </script>
 </body>
