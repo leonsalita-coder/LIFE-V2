@@ -415,6 +415,72 @@
   @media (prefers-reduced-motion: reduce) { .pill.shimmer::after, .ex.celebrate::before, .ex.celebrate::after { display:none; } *, .sheet, .pop, .scrim, .menuPop { animation-duration:0.01ms !important; transition-duration:0.01ms !important; } }
   .starterTag{width:max-content;max-width:92%;margin:0 auto 20px;padding:6px 14px;border:1px solid rgba(110,231,183,.25);border-radius:999px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#84848c;text-align:center}
   .starterTag,.starterTag *{line-height:1.6}
+
+  /* ====================================================================
+     REDESIGN LAYER — buttons, progress bar, scroll reveal, surface polish.
+     Same palette and backdrop as above, untouched; this is depth, motion
+     and touch-target work layered on top via the cascade (source order
+     wins on equal specificity, so these rules refine the ones above them
+     rather than replace them). ================================ */
+
+  /* feedback should never depend on hover alone, and every button gets a
+     real pointer + a real press */
+  button:focus-visible, a:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; border-radius: 8px; }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; }
+
+  /* small icon buttons: same visual size, a real 44px+ tap target via an
+     invisible hit-slop, and a crisper press */
+  .exEye, .pinBtn, .menuBtn, .grip, .photoX, .popX, .dropX, .wcX, .restX, .wcCheck, .moonbtn { position: relative; }
+  .exEye::after, .pinBtn::after, .menuBtn::after, .grip::after, .photoX::after, .popX::after, .dropX::after, .wcX::after, .restX::after, .wcCheck::after { content: ''; position: absolute; inset: -9px; }
+  .exEye, .pinBtn, .menuBtn, .photoX, .popX, .dropX, .wcX, .restX, .wcCheck, .restStep, .step { transition: color .18s var(--ease), border-color .18s var(--ease), background .18s var(--ease), transform .15s var(--spring); }
+  .exEye:active, .pinBtn:active, .menuBtn:active, .photoX:active, .popX:active, .dropX:active, .wcX:active, .restX:active, .wcCheck:active, .restStep:active, .step:active { transform: scale(.86); }
+
+  .moonbtn { background: rgba(255,255,255,.02); }
+  .moonbtn:active { transform: scale(.95); }
+
+  /* the primary CTA gets real depth: a soft top sheen + a shadow that
+     blooms on hover instead of just sitting flat */
+  .finishBtn { background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 46%), var(--mint); box-shadow: 0 12px 32px -14px rgba(110,231,183,.5); transition: transform .18s var(--spring), box-shadow .25s var(--ease), opacity .2s, background .2s; }
+  .finishBtn:not(:disabled):hover { box-shadow: 0 16px 40px -12px rgba(110,231,183,.62); transform: translateY(-1px); }
+  .finishBtn.locked { background: rgba(110,231,183,.12); box-shadow: none; }
+  .pbtn.save { background: linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,0) 46%), var(--mint); box-shadow: 0 10px 26px -14px rgba(110,231,183,.5); }
+  .pbtn.save:hover:not(:disabled) { box-shadow: 0 14px 34px -12px rgba(110,231,183,.6); }
+  .pbtn.ghost:hover:not(:disabled) { background: rgba(255,255,255,.03); }
+
+  /* interaction-triggered only — no idle looping animation on repeated elements */
+  .addLiftRing { transition: background .2s var(--ease), transform .18s var(--spring), box-shadow .25s var(--ease); }
+  .addLift:hover .addLiftRing { box-shadow: 0 0 0 6px rgba(110,231,183,.06); }
+  .swapItem { transition: border-color .15s var(--ease), background .15s var(--ease), transform .15s var(--ease); }
+  .swapItem:hover { transform: translateY(-1px); }
+  .photoCard { position: relative; transition: transform .2s var(--ease), box-shadow .2s var(--ease); }
+  .photoCard:hover { transform: translateY(-2px); box-shadow: 0 16px 36px -18px rgba(0,0,0,.65); }
+
+  /* card surfaces — a hairline sheen at the top, echoing the glass backdrop */
+  .sheet, .pop, .chart-card { position: relative; }
+  .sheet::before, .pop::before, .chart-card::before, .ovCard::before { content: ''; position: absolute; left: 16px; right: 16px; top: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent); pointer-events: none; }
+  .ovCard { position: relative; overflow: hidden; transition: border-color .2s var(--ease), transform .2s var(--ease); }
+  .ovCard::before { left: 0; right: 0; }
+  .ovCard:hover { border-color: var(--hair); transform: translateY(-1px); }
+
+  /* ---- progress bar: a segmented track with a glowing traveling edge - */
+  .ptrack { position: relative; height: 7px; border-radius: 999px; overflow: visible; background: repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 calc(10% - 2px), transparent calc(10% - 2px) 10%); }
+  .pfill { position: relative; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #2fbd85, #6EE7B7 55%, #d7fbe9); box-shadow: 0 0 14px rgba(110,231,183,.35); transition: width .6s var(--spring); }
+  .pcomet { position: absolute; right: -3px; top: 50%; width: 9px; height: 9px; border-radius: 50%; background: #fff; transform: translate(50%, -50%); box-shadow: 0 0 10px 3px rgba(110,231,183,.85), 0 0 22px 7px rgba(110,231,183,.35); }
+  @keyframes pfillPulse { 0% { filter: brightness(1); } 35% { filter: brightness(1.4); } 100% { filter: brightness(1); } }
+  .pfill.pulse { animation: pfillPulse .7s var(--ease); }
+  .mbFill, .wdFill { transition: width .6s var(--spring), height .6s var(--spring); box-shadow: 0 0 8px rgba(110,231,183,.28); }
+
+  /* ---- scroll reveal — the lower sheets fade up into place as you scroll,
+     once, never re-hiding on the way back up (that reads as flicker, not polish) */
+  .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .pfill.pulse { animation: none !important; }
+    .ovCard:hover, .swapItem:hover, .photoCard:hover, .addLift:hover .addLiftRing, .finishBtn:hover { transform: none !important; box-shadow: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -435,7 +501,7 @@
       <button class="moonbtn" id="genbtn" title="Talk to your coach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>generate</span></button>
       <button class="moonbtn" id="moonbtn" title="Mark today a rest day"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>rest day</span></button>
     </div>
-    <div class="progress" id="progress"><div class="ptrack"><div class="pfill" id="pfill"></div></div><div class="plabel" id="plabel"></div></div>
+    <div class="progress" id="progress"><div class="ptrack"><div class="pfill" id="pfill"><span class="pcomet"></span></div></div><div class="plabel" id="plabel"></div></div>
     <div class="wcSection" id="warmupSlot"></div>
     <div class="exwrap" id="exwrap"></div>
     <div class="wcSection" id="cooldownSlot"></div>
@@ -444,12 +510,12 @@
     <p class="store-note">Saved to your Vitality dashboard.</p>
   </div>
 
-  <div class="sheet" id="goalSheet">
+  <div class="sheet reveal" id="goalSheet">
     <div class="eyebrow">Short-term goal</div>
     <div id="goalBubble" style="margin-top:14px"></div>
   </div>
 
-  <div class="sheet" id="photosSheet">
+  <div class="sheet reveal" id="photosSheet">
     <div class="eyebrow">Progress photos</div>
     <div id="photoGallery" style="margin-top:14px"></div>
     <input type="file" id="photoInput" accept="image/*" style="display:none" />
@@ -461,7 +527,7 @@
     <div id="photoStatus" class="photoStatus"></div>
   </div>
 
-  <div class="sheet" id="statsSheet">
+  <div class="sheet reveal" id="statsSheet">
     <div class="eyebrow" style="display:flex;align-items:center;justify-content:space-between">Progress<button class="photoX" id="exportCsvBtn" title="Export CSV" style="font-size:11px;font-family:var(--vt-mono);letter-spacing:.08em;text-transform:uppercase">export ⇩</button></div>
     <div class="ovGrid" id="overviewCards"></div>
     <div class="swapList" id="statsPicker" style="margin-top:16px"></div>
@@ -621,7 +687,11 @@ function renderProgress(){
   if(session.off){ prog.style.display='none'; return; }
   prog.style.display='';
   const t=sessionTotals(session); const pct = t.total? Math.round(t.logged/t.total*100):0;
-  $('#pfill').style.width=pct+'%';
+  const fill=$('#pfill');
+  const prevPct=parseFloat(fill.dataset.pct||'0');
+  fill.style.width=pct+'%';
+  if(pct>prevPct){ fill.classList.remove('pulse'); void fill.offsetWidth; fill.classList.add('pulse'); }
+  fill.dataset.pct=String(pct);
   $('#plabel').innerHTML = '<b>'+t.logged+'</b> of '+t.total+' logged';
 }
 function renderBody(){
@@ -1653,6 +1723,21 @@ function drawSessionsCal(){
   $('#statsRow').innerHTML='<div class="stat"><div class="k">Streak</div><div class="v gold">'+currentStreak()+'</div></div><div class="stat"><div class="k">Total sessions</div><div class="v">'+set.size+'</div></div><div class="stat"><div class="k">Lifts tracked</div><div class="v">'+Object.keys(STATE.exerciseNames||{}).length+'</div></div>';
 }
 
+/* ---- scroll reveal: the lower sheets (goal / photos / stats) fade up
+   into place as they enter view. They're static containers — never
+   rebuilt via innerHTML — so one observer at boot is all this needs;
+   each fires once and stays revealed (no flicker on scrolling back up). */
+function wireScrollReveal(){
+  const els=[...document.querySelectorAll('.reveal')];
+  if(!els.length) return;
+  const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduced || !('IntersectionObserver' in window)){ els.forEach(el=>el.classList.add('in')); return; }
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, { threshold:0.12 });
+  els.forEach(el=>io.observe(el));
+}
+
 /* ---- inlined backdrop particles (self-contained) ------------------ */
 function spawnParticles(root){
   if(!root) return;
@@ -1689,6 +1774,7 @@ function spawnParticles(root){
   renderGoalBubble(); renderPhotos(); wirePhotoUpload(); renderOverviewCards(); renderStatsPicker(); drawStatsSection();
   const exportBtn=$('#exportCsvBtn'); if(exportBtn) exportBtn.onclick=exportCSV;
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
+  wireScrollReveal();
 })();
 </script>
 </body>
