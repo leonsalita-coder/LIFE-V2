@@ -483,7 +483,18 @@ function buildState(){
         hist: (SEED&&SEED.hist&&SEED.hist[e.id]) ? JSON.parse(JSON.stringify(SEED.hist[e.id])) : [] };
     })};
   });
-  return { active:(SEED&&SEED.active)||'push', unit:'kg', submitted:false, days };
+  return { active:(SEED&&SEED.active)||'push', unit:'kg', submitted:false, days, customLib:{} };
+}
+/* ---- AI-classified exercises (typed by name, not in the built-in library) -
+   Merged into LIB lookups everywhere below. Cached in STATE.customLib so a
+   name is only ever sent to the classifier once — it's a real paid call on
+   the user's own key. */
+function slugify(name){
+  const base = name.toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'exercise';
+  let id = base, n = 1;
+  const taken = id2 => LIB[id2] || (STATE.customLib && STATE.customLib[id2]) || (curDay() && curDay().ex.some(x=>x.id===id2));
+  while (taken(id)) { id = base + '_' + (++n); }
+  return id;
 }
 /* STATE is filled by the async boot below once the dashboard bridge resolves. */
 let STATE = null;
@@ -737,7 +748,7 @@ const popHead = (eyebrow,title)=> '<div class="popHead"><div><div class="eyebrow
 
 /* ---- form / info popup ------------------------------------------- */
 function openForm(e){
-  const info=LIB[e.id]||{equipment:'',primary:[],secondary:[],gist:'A solid lift. Keep the reps clean and controlled.',steps:['Set up tight','Move with control','Full range, every rep'],cues:['Control the negative','Full range of motion']};
+  const info=LIB[e.id]||(STATE.customLib&&STATE.customLib[e.id])||{equipment:'',primary:[],secondary:[],gist:'A solid lift. Keep the reps clean and controlled.',steps:['Set up tight','Move with control','Full range, every rep'],cues:['Control the negative','Full range of motion']};
   const muscles=[...(info.primary||[]).map(m=>'<span class="primary">'+m+'</span>'),...(info.secondary||[]).map(m=>'<span class="secondary">'+m+'</span>')].join('<span class="metaSep">·</span>');
   openPop(popHead('Form', e.name)
     + '<div class="formMuscles">'+muscles+(muscles?'<span class="metaSep">·</span>':'')+'<span class="primary">'+(TIER_LABEL[e.tier]||'')+'</span></div>'
@@ -816,6 +827,11 @@ function drawTable(e, all){
 }
 
 /* ---- swap popup --------------------------------------------------- */
+function commitExercise(def, e, day, adding){
+  if(adding){ day.ex.push(def); }
+  else { const i=day.ex.findIndex(x=>x.id===e.id); if(i>=0) day.ex[i]=def; stopRest(e.id); }
+  closePop(); render();
+}
 function openSwap(e){
   const day=curDay(); const adding=!e;
   const opts=(SWAPS[STATE.active]||[]).filter(o=> !day.ex.some(x=>x.id===o.id));
@@ -823,16 +839,39 @@ function openSwap(e){
   openPop(popHead(adding?'Add':'Swap', adding? day.name+' day' : e.name)
     + (adding? '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Add a lift to today’s '+day.name.toLowerCase()+'. It starts fresh and you set the weight.</p>'
              : '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Swap this lift for today. The new exercise starts fresh on this day.</p>')
-    + '<div class="secLbl">'+(adding?'From the '+day.name.toLowerCase()+' library':'Recommended swaps')+'</div>'
+    + '<div class="secLbl">Type any exercise</div>'
+    + '<div class="searchRow">'+svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>')+'<input id="aiName" placeholder="e.g. Zercher squat, 5k run" autocomplete="off" /></div>'
+    + '<button class="pbtn save" id="aiGo" style="margin-top:10px;width:100%">Look it up with AI</button>'
+    + '<div id="aiStatus" style="margin-top:10px;font-size:13px;min-height:16px"></div>'
+    + '<div class="secLbl">'+(adding?'Or pick from the '+day.name.toLowerCase()+' library':'Or pick a recommended swap')+'</div>'
     + '<div class="swapList">'+rows+'</div>',
     scrim=>{
       scrim.querySelectorAll('.swapItem').forEach(b=> b.onclick=()=>{
         const o=opts.find(x=>x.id===b.dataset.id); if(!o) return;
         const def={ id:o.id, name:o.name, tier:o.tier, sets:(e?e.sets:3), reps:(e?e.reps:10), kg:(e?e.kg:20), perHand:!!o.perHand, rest:(e?e.rest:120), lastKg:null, pinned:false, collapsed:false, deload:false, note:'', log:Array(e?e.sets:3).fill(null), hist:[] };
-        if(adding){ day.ex.push(def); }
-        else { const i=day.ex.findIndex(x=>x.id===e.id); if(i>=0) day.ex[i]=def; stopRest(e.id); }
-        closePop(); render();
+        commitExercise(def, e, day, adding);
       });
+      const nameIn=scrim.querySelector('#aiName'), goBtn=scrim.querySelector('#aiGo'), status=scrim.querySelector('#aiStatus');
+      const runClassify=async()=>{
+        const nm=nameIn.value.trim(); if(!nm) return;
+        goBtn.disabled=true; status.style.color='var(--muted-strong)'; status.textContent='Looking that up…';
+        try{
+          const info=await window.Vitality.classify(nm);
+          const id=slugify(nm);
+          STATE.customLib=STATE.customLib||{};
+          STATE.customLib[id]={ equipment:info.equipment||'', primary:info.primary||[], secondary:info.secondary||[], gist:info.gist||'', steps:info.steps||[], cues:info.cues||[] };
+          const sets=Math.max(1,Math.min(8,Math.round(info.startingSets)||3));
+          const def={ id, name:nm, tier:info.tier||2, sets, reps:Math.max(1,Math.round(info.startingReps)||10), kg:Number.isFinite(info.startingKg)?info.startingKg:0, perHand:false, rest:Math.max(30,Math.round(info.restSeconds)||90), lastKg:null, pinned:false, collapsed:false, deload:false, note:'', log:Array(sets).fill(null), hist:[] };
+          commitExercise(def, e, day, adding);
+        }catch(err){
+          status.style.color='var(--fail)';
+          const reason=err&&err.message;
+          status.textContent = reason==='no_key' ? 'Add your own Anthropic key to use this — ask your mentor.' : "Couldn't look that up — try again.";
+          goBtn.disabled=false;
+        }
+      };
+      goBtn.onclick=runClassify;
+      nameIn.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); runClassify(); } });
     });
 }
 
@@ -945,6 +984,7 @@ function spawnParticles(root){
   let d=null;
   try{ d = await window.Vitality.load(); }catch(e){ d=null; }
   STATE = (d && typeof d==='object' && !Array.isArray(d) && d.days) ? d : buildState();
+  STATE.customLib = STATE.customLib || {};
   render(); wireFresh();
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
 })();

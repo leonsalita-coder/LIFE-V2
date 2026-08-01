@@ -136,6 +136,31 @@ export function useTileHost(
         return
       }
 
+      // Exercise classify — routed through /api/coach/exercise so the
+      // Anthropic key stays server-side. Turns a free-typed exercise name
+      // into the Train tile's library shape (tier, muscles, form, starting
+      // numbers). This is a real paid call, so the tile is responsible for
+      // caching results and never re-classifying the same name.
+      if (msg.type === 'classify') {
+        const name = String(msg.name || '').trim().slice(0, 80)
+        if (!name) {
+          src.postMessage({ source: 'vitality-host', type: 'classify:error', id: msg.id, reason: 'no_name' }, '*')
+          return
+        }
+        try {
+          const r = await fetch('/api/coach/exercise?name=' + encodeURIComponent(name))
+          const j = await r.json()
+          if (j?.exercise) {
+            src.postMessage({ source: 'vitality-host', type: 'classify:result', id: msg.id, exercise: j.exercise }, '*')
+          } else {
+            src.postMessage({ source: 'vitality-host', type: 'classify:error', id: msg.id, reason: String(j?.error || 'no_data') }, '*')
+          }
+        } catch {
+          src.postMessage({ source: 'vitality-host', type: 'classify:error', id: msg.id, reason: 'fetch_failed' }, '*')
+        }
+        return
+      }
+
       // Cross-tile READ — the host hands a tile another slot's saved data so
       // tiles can react to each other client-side (e.g. Peak reshaping from the
       // Vitals recovery) with no /sweep and no connector. Read-only, the user's

@@ -28,6 +28,8 @@ const SHIM = `<script>
     else if (m.type === 'youtube:error') p.reject(new Error(m.reason || 'youtube_failed'));
     else if (m.type === 'stock:result') p.resolve(m.price);
     else if (m.type === 'stock:error') p.reject(new Error(m.reason || 'stock_failed'));
+    else if (m.type === 'classify:result') p.resolve(m.exercise);
+    else if (m.type === 'classify:error') p.reject(new Error(m.reason || 'classify_failed'));
   });
   function call(type, extra) {
     return new Promise(function (resolve, reject) {
@@ -52,6 +54,7 @@ const SHIM = `<script>
     tiktok: function (handle) { return call('tiktok', { handle: handle }); },
     youtube: function (handle) { return call('youtube', { handle: handle }); },
     stock: function (symbol) { return call('stock', { symbol: symbol }); },
+    classify: function (name) { return call('classify', { name: name }); },
     read: function (slot) { return call('read', { slot: slot }); },
     report: function (stream) {
       parent.postMessage({ source: 'vitality-tile', type: 'report', stream: stream }, '*');
