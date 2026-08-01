@@ -441,7 +441,7 @@ function buildState(){
   return {
     unit:'lb', submitted:false,
     session:{ date:today, off:false, warmup:[], cooldown:[], ex:[] },
-    history:{}, customLib:{}, finishedDates:[], templates:[]
+    history:{}, customLib:{}, finishedDates:[], templates:[], deloadOverrides:{}
   };
 }
 function seedChecklist(list){ return (list||[]).map(text=>({text, done:false})); }
@@ -638,16 +638,19 @@ function vitalsRecoverySignal(v){
 /* ---- post-session note: one honest observation, computed once per
    finished session and cached — this is the mentor's "noticer" role,
    automated for Train. Silent on failure; it's a bonus, not core flow. */
-async function buildInsightDigest(session){
+const RECOVERY_FLOOR=55; // below this, a plateau is treated as fatigue-driven, not a programming problem
+async function buildInsightContext(session){
   const lines=[];
   lines.push('Streak: '+currentStreak()+' consecutive day(s).');
   const t=sessionTotals(session);
   lines.push('Today: '+t.logged+'/'+t.total+' sets logged across '+session.ex.length+' exercise(s).');
+  const plateaus=[];
   session.ex.forEach(e=>{
     const h=histFor(e).filter(s=>!s.off);
     const misses=e.log.filter(s=>s&&s.fail).length;
     const pr=exHasPR(e)?' (PR today)':'';
     const plateau=detectPlateau(e);
+    if(plateau) plateaus.push({ e, plateau });
     if(h.length>=2){
       const delta=r1(h[h.length-1].kg-h[0].kg);
       lines.push('- '+e.name+': '+h.length+' sessions on record, '+(delta>=0?'+':'')+delta+' '+STATE.unit+' over that span, '+misses+' missed set(s) today'+pr+(plateau?' — PLATEAU: weight and reps flat for the last '+plateau.sessions+' sessions at '+plateau.weight+' '+STATE.unit+'.':'.'));
@@ -655,20 +658,45 @@ async function buildInsightDigest(session){
       lines.push('- '+e.name+': first time logging this, '+misses+' missed set(s) today'+pr+'.');
     }
   });
+  let recoveryAvg=null;
   try{
     const vitals=await window.Vitality.read('vitals');
     const rec=vitalsRecoverySignal(vitals);
-    if(rec) lines.push('Recovery (Vitals, '+rec.days+'-day avg): '+rec.avg+'/100.');
+    if(rec){ recoveryAvg=rec.avg; lines.push('Recovery (Vitals, '+rec.days+'-day avg): '+rec.avg+'/100.'); }
   }catch(e){ /* Vitals not available — the note still works without it */ }
-  return lines.join('\n');
+  return { lines, plateaus, recoveryAvg };
+}
+/* ---- fully automatic deload: no button, no confirmation. When a lift is
+   BOTH plateaued and recovery is genuinely low, this is fatigue, not a
+   programming problem — so the system drops that lift's suggested weight
+   ~12% right now, the same way the progression suggestion already
+   auto-adjusts without asking. The note then REPORTS the action (never
+   silent), and it's a one-time nudge: the very next real session on that
+   lift clears the override and normal progression resumes from there. */
+function applyAutomaticDeloads(session, recoveryAvg, plateaus){
+  if(recoveryAvg==null || recoveryAvg>=RECOVERY_FLOOR) return [];
+  const applied=[];
+  plateaus.forEach(({e,plateau})=>{
+    if(plateau.weight<=0) return; // bodyweight-only lift — nothing to deload
+    const newKg=r1(plateau.weight*0.88);
+    STATE.deloadOverrides=STATE.deloadOverrides||{};
+    STATE.deloadOverrides[e.id]={ kg:newKg, date:today };
+    e.kg=newKg;
+    applied.push({ name:e.name, from:plateau.weight, to:newKg });
+  });
+  return applied;
 }
 async function fetchInsight(session){
   try{
-    const digest=await buildInsightDigest(session);
+    const ctx=await buildInsightContext(session);
+    const applied=applyAutomaticDeloads(session, ctx.recoveryAvg, ctx.plateaus);
+    const lines=ctx.lines.slice();
+    applied.forEach(a=> lines.push('AUTO-DELOAD APPLIED: '+a.name+' automatically dropped from '+a.from+' to '+a.to+' '+STATE.unit+' due to the plateau + low recovery — report this as a fact that already happened, not a suggestion.'));
+    const digest=lines.join('\n');
     const note=await window.Vitality.getInsight({ goal:ATHLETE_GOAL, digest });
     session.insight={ date:today, text:(typeof note==='string'&&note.trim())?note.trim():null };
   }catch(err){ session.insight={ date:today, text:null }; }
-  saveState(); renderInsight(session);
+  render(); // covers saveState + insight display + any auto-deload reflected in the UI
 }
 function renderInsight(session){
   let el=$('#insightBox');
@@ -737,6 +765,11 @@ function renderPillGroup(e, rx, idx){
    after any miss or a partial session; bumped a small, weight-scaled step
    (in pounds) after a session where every set hit its rep target. */
 function suggestedKg(e, rx){
+  // an automatic deload overrides the normal suggestion exactly once —
+  // until a new real session lands after the override, then it clears
+  // itself and normal progression resumes from that fresh data point.
+  const ov=STATE.deloadOverrides && STATE.deloadOverrides[e.id];
+  if(ov && !histFor(e).some(s=>!s.off && s.date>ov.date)) return ov.kg;
   const real=histFor(e).filter(s=>!s.off);
   if(!real.length) return e.lastKg!=null ? e.lastKg : rx.kg;
   const last=real[real.length-1];
@@ -1236,6 +1269,7 @@ function spawnParticles(root){
   STATE.finishedDates = STATE.finishedDates || [];
   STATE.templates = STATE.templates || [];
   STATE.history = STATE.history || {};
+  STATE.deloadOverrides = STATE.deloadOverrides || {};
   render(); wireFresh();
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
 })();
