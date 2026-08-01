@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Reading</title>
+<!--
+  READING — your own shelf, your own numbers. No invented book data (no
+  fabricated synopses, page counts, or authors for books you haven't told it
+  about) — every book here is one you typed in yourself. A timer arms when
+  you start a book; finishing a session asks how many pages, grades it
+  against your last session on that same book, and the chart grows.
+  Sealed: no network. Saves through window.Vitality.
+  Store: { books:[{id,title,author,totalPages,status,addedAt}],
+           sessions:[{id,bookId,date,pages,minutes}], timer:{bookId,startedAt}|null }
+-->
+<style>
+  :root{
+    --bg:#050506;--surface:#0e0e11;--border:#1d1d22;--mint:#6EE7B7;--muted:#84848c;--fg:#ededf0;
+    --gold:#f1cf7a;--fail:#e06a6c;--ink:#04140d;
+    --card:#0e0e11;--row:#141419;--line:#1d1d22;--hair:#2a2a31;--muted-strong:#a8a8b0;
+    --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --serif:Georgia,'Times New Roman',serif;
+    --ease:cubic-bezier(.16,1,.3,1);--spring:cubic-bezier(.34,1.56,.64,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  ::selection{background:var(--mint);color:var(--ink)}
+  html{background:var(--bg)}
+  body{min-height:100dvh;padding:40px 20px 60px;display:flex;justify-content:center;background:transparent;color:var(--fg);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased;position:relative}
+  body::before{content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;background:
+    radial-gradient(58% 44% at 50% -6%, rgba(110,231,183,.13), transparent 62%),
+    radial-gradient(1.5px 1.5px at 14% 16%, rgba(255,255,255,.5), transparent 100%),
+    radial-gradient(1px 1px at 76% 10%, rgba(255,255,255,.4), transparent 100%),
+    radial-gradient(1.5px 1.5px at 52% 6%, rgba(255,255,255,.32), transparent 100%),
+    radial-gradient(1px 1px at 30% 28%, rgba(255,255,255,.28), transparent 100%)}
+  body::after{content:'';position:fixed;left:0;right:0;bottom:0;height:32vh;z-index:-1;pointer-events:none;background:
+    linear-gradient(to top, rgba(8,19,14,.85), transparent 80%),
+    linear-gradient(115deg, transparent 42%, rgba(13,26,23,.75) 43%, rgba(13,26,23,.75) 58%, transparent 59%),
+    linear-gradient(245deg, transparent 38%, rgba(10,18,16,.9) 39%, rgba(10,18,16,.9) 62%, transparent 63%);
+    -webkit-mask-image:linear-gradient(to top,#000 55%,transparent);mask-image:linear-gradient(to top,#000 55%,transparent)}
+  .shell{width:100%;max-width:560px}
+  .starterTag{width:max-content;max-width:92%;margin:0 auto 20px;padding:6px 14px;border:1px solid rgba(110,231,183,.25);border-radius:999px;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);text-align:center}
+  .starterTag,.starterTag *{line-height:1.6}
+  .sheet{position:relative;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 20px 24px;backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);margin-bottom:14px}
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.2em;font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:space-between}
+  h1{font-size:24px;font-weight:600;letter-spacing:-.01em;margin-bottom:14px}
+  .num,.tabular{font-variant-numeric:tabular-nums}
+
+  /* the shelf */
+  .bookRow{display:flex;align-items:center;gap:12px;padding:13px 2px;border-top:1px solid var(--line)}
+  .bookRow:first-of-type{border-top:none}
+  .bookBd{flex:1;min-width:0}
+  .bookTitle{font-family:var(--serif);font-style:italic;font-size:18px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bookAuthor{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+  .bookProg{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .bookBar{flex:1;height:4px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+  .bookFill{height:100%;border-radius:999px;background:linear-gradient(90deg,#3ddc97,var(--mint));transition:width .5s var(--ease)}
+  .bookPct{font-family:var(--mono);font-size:9.5px;color:var(--muted);flex:none;min-width:52px;text-align:right}
+  .bookRow.done .bookFill{background:linear-gradient(90deg,#caa24a,var(--gold))}
+  .bookGo{flex:none;padding:9px 16px;border-radius:999px;border:1px solid rgba(110,231,183,.35);background:rgba(110,231,183,.05);color:var(--mint);font-family:var(--serif);font-style:italic;font-size:14px;cursor:pointer;transition:all .15s var(--ease)}
+  .bookGo:hover{border-color:var(--mint);background:rgba(110,231,183,.1)}
+  .bookGo:active{transform:scale(.95)}
+  .bookGo.done{border-color:rgba(241,207,122,.35);background:rgba(241,207,122,.06);color:var(--gold)}
+  .bookMenu{flex:none;background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 6px;font-size:16px;line-height:1}
+  .bookMenu:hover{color:var(--fg)}
+  .emptyShelf{text-align:center;color:var(--muted);font-style:italic;font-family:var(--serif);font-size:15px;padding:20px 0}
+
+  /* add-a-book */
+  .addBookForm{display:flex;flex-direction:column;gap:9px;margin-top:14px}
+  .addBookForm input{background:var(--row);border:1px solid var(--hair);border-radius:10px;color:var(--fg);font:inherit;font-size:14px;padding:11px 13px;outline:none;transition:border-color .15s}
+  .addBookForm input:focus{border-color:var(--mint)}
+  .addBookGo{border:none;background:var(--mint);color:var(--ink);border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer}
+  .addLift{display:flex;flex-direction:column;align-items:center;gap:9px;margin:6px auto 0;background:none;border:none;cursor:pointer;padding:14px;width:100%}
+  .addLiftRing{width:38px;height:38px;border-radius:50%;border:1px solid var(--mint);display:grid;place-items:center;color:var(--mint);transition:background .2s,transform .15s var(--spring)}
+  .addLift:hover .addLiftRing{background:rgba(110,231,183,.08)}
+  .addLift:active .addLiftRing{transform:scale(.92)}
+  .addLiftRing svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+  .addLiftLabel{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--mint)}
+
+  /* the live timer card */
+  .timerCard{text-align:center;padding:8px 0 4px}
+  .timerBook{font-family:var(--serif);font-style:italic;font-size:20px}
+  .timerAuthor{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+  .timerClock{font-family:var(--mono);font-weight:700;font-size:44px;color:var(--mint);margin-top:18px;letter-spacing:-.02em}
+  .timerLabel{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+  .timerStop{margin-top:22px;border:none;background:var(--mint);color:var(--ink);border-radius:14px;padding:14px;width:100%;font-weight:700;font-size:15px;cursor:pointer;transition:transform .15s var(--spring)}
+  .timerStop:active{transform:scale(.98)}
+  .timerCancel{display:block;margin:12px auto 0;background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer}
+
+  /* overview cards + chart, matched to Train's proven pattern */
+  .ovGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px}
+  .ovCard{border:1px solid var(--line);border-radius:14px;padding:16px 12px;text-align:center}
+  .ovNum{font-family:var(--mono);font-style:normal;font-weight:700;font-size:25px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .ovNum.gold{color:var(--gold)} .ovNum.mint{color:var(--mint)}
+  .ovLbl{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+  .chipRow{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin:16px -2px 0;scrollbar-width:none}
+  .chipRow::-webkit-scrollbar{display:none}
+  .chip{flex:none;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.02);color:var(--muted-strong);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .18s var(--ease)}
+  .chip:hover{border-color:var(--hair);color:var(--fg)}
+  .chip.on{border-color:var(--mint);background:var(--mint);color:var(--ink)}
+  .chart-card{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:18px 16px 14px}
+  .plot{position:relative;width:100%;aspect-ratio:600/240}
+  .plot svg{width:100%;height:100%;display:block;overflow:visible}
+  .grid{stroke:var(--line);stroke-width:1}
+  .axis-label,.xlab{fill:var(--muted);font-family:var(--font);font-size:11px}
+  .xlab.best{fill:var(--mint);font-weight:500}
+  .area{fill:url(#rdFill)}
+  .line{fill:none;stroke:var(--mint);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+  .dot{fill:var(--mint);stroke:var(--card);stroke-width:3}
+  .dot.best{fill:var(--gold)}
+  .delta-cap{text-align:center;font-family:var(--serif);font-style:italic;font-size:14px;color:var(--mint);margin-top:8px}
+  .emptyChart{text-align:center;color:var(--muted);font-style:italic;font-family:var(--serif);font-size:14px;padding:34px 0}
+
+  /* popup system, matched to Train */
+  .scrim{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:max(20px,env(safe-area-inset-top)) 14px 40px;overflow-y:auto;background:rgba(0,0,0,.5);opacity:0;animation:scrimIn .24s var(--premium,var(--ease)) forwards}
+  @keyframes scrimIn{to{opacity:1}}
+  .pop{width:100%;max-width:460px;margin:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px 22px 26px;position:relative;backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);box-shadow:0 30px 80px rgba(0,0,0,.55);opacity:0;transform:translateY(8px) scale(.97);animation:popIn .32s cubic-bezier(.16,1,.3,1) forwards}
+  @keyframes popIn{to{opacity:1;transform:none}}
+  .popHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .popTitle{font-family:var(--serif);font-style:italic;font-size:24px;font-weight:500;line-height:1.05;margin-top:4px}
+  .popX{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;flex:none}
+  .popX svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+  .popX:hover{color:var(--fg)}
+  .field{display:flex;flex-direction:column;gap:9px;margin-top:16px}
+  .field label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .field input{background:var(--row);border:1px solid var(--hair);border-radius:10px;color:var(--fg);font:inherit;font-size:15px;padding:11px 13px;outline:none}
+  .field input:focus{border-color:var(--mint)}
+  .field .hint{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--muted-strong);margin-top:2px}
+  .field .hint.beat{color:var(--mint)}
+  .popBtns{display:flex;gap:10px;margin-top:22px}
+  .pbtn{flex:1;border:none;border-radius:12px;padding:13px;font-family:var(--font);font-size:14.5px;font-weight:600;cursor:pointer;transition:transform .18s var(--spring)}
+  .pbtn:active{transform:scale(.98)}
+  .pbtn.save{background:var(--mint);color:var(--ink)}
+  .pbtn.ghost{background:none;border:1px solid var(--hair);color:var(--muted)}
+  .pbtn.danger{background:rgba(224,106,108,.12);border:1px solid var(--fail);color:#e88a8c}
+
+  @media (prefers-reduced-motion:reduce){ *,.sheet,.pop,.scrim{animation-duration:.01ms!important;transition-duration:.01ms!important} }
+</style>
+</head>
+<body>
+<div class="shell">
+<div class="starterTag">✦ starter — the value is what you build · the videos show how</div>
+  <h1>Reading</h1>
+  <div id="app"></div>
+</div>
+<div id="popRoot"></div>
+<script>
+const pad=n=>String(n).padStart(2,'0');
+function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function todayKey(){ return ymd(new Date()); }
+function daysAgo(k){ const [y,m,d]=k.split('-').map(Number); const t=new Date(); t.setHours(0,0,0,0); return Math.round((t-new Date(y,m-1,d))/86400000); }
+function fmtDate(k){ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function uid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+const $=s=>document.querySelector(s);
+
+let STATE=null;
+function buildState(){ return { books:[], sessions:[], timer:null }; }
+function persist(){ if(window.Vitality&&typeof window.Vitality.save==='function') window.Vitality.save(STATE); }
+
+function booksList(){ return STATE.books; }
+function sessionsFor(bookId){ return STATE.sessions.filter(s=>s.bookId===bookId).sort((a,b)=>a.date.localeCompare(b.date)); }
+function pagesRead(bookId){ return sessionsFor(bookId).reduce((a,s)=>a+s.pages,0); }
+function lastSession(bookId){ const s=sessionsFor(bookId); return s.length?s[s.length-1]:null; }
+
+/* ---- render ---- */
+function render(){
+  const app=$('#app');
+  let html='';
+  if(STATE.timer){ html+=timerSheetHtml(); }
+  html+=shelfHtml();
+  html+=addBookHtml();
+  html+=statsHtml();
+  app.innerHTML=html;
+  wireAfterRender();
+}
+
+function shelfHtml(){
+  const books=booksList();
+  const rows=books.map(b=>{
+    const read=pagesRead(b.id), tot=Math.max(1,b.totalPages||1);
+    const pct=Math.min(100,Math.round(read/tot*100));
+    const done=b.status==='done'||read>=tot;
+    return '<div class="bookRow'+(done?' done':'')+'">'
+      +'<div class="bookBd"><div class="bookTitle">'+esc(b.title)+'</div>'
+      +(b.author?'<div class="bookAuthor">'+esc(b.author)+'</div>':'')
+      +'<div class="bookProg"><div class="bookBar"><div class="bookFill" style="width:'+pct+'%"></div></div><span class="bookPct">'+read+' / '+tot+'</span></div></div>'
+      +(done
+        ? '<button class="bookGo done" data-info="'+b.id+'">done</button>'
+        : (STATE.timer&&STATE.timer.bookId===b.id
+            ? '<button class="bookGo" data-info="'+b.id+'">reading…</button>'
+            : '<button class="bookGo" data-start="'+b.id+'">'+(read>0?'continue':'start')+'</button>'))
+      +'<button class="bookMenu" data-menu="'+b.id+'" aria-label="options">⋯</button>'
+      +'</div>';
+  }).join('');
+  return '<div class="sheet"><div class="eyebrow">Your shelf<span>'+books.length+'</span></div>'
+    +(rows||'<p class="emptyShelf">Add a book below to start your shelf.</p>')
+    +'</div>';
+}
+
+function addBookHtml(){
+  return '<div class="sheet">'
+    +'<button class="addLift" id="addBookBtn"><span class="addLiftRing">'+svgPlus()+'</span><span class="addLiftLabel">Add a book</span></button>'
+    +'</div>';
+}
+
+function timerSheetHtml(){
+  const t=STATE.timer, b=booksList().find(x=>x.id===t.bookId);
+  if(!b) return '';
+  return '<div class="sheet"><div class="eyebrow">Now reading</div>'
+    +'<div class="timerCard"><div class="timerBook">'+esc(b.title)+'</div>'
+    +(b.author?'<div class="timerAuthor">'+esc(b.author)+'</div>':'')
+    +'<div class="timerClock tabular" id="timerClock">0:00</div>'
+    +'<div class="timerLabel">elapsed</div>'
+    +'<button class="timerStop" id="timerStopBtn">Finish session</button>'
+    +'<button class="timerCancel" id="timerCancelBtn">cancel, don’t log this</button>'
+    +'</div></div>';
+}
+
+/* ---- stats ---- */
+let statsBookId=null;
+function statsHtml(){
+  const books=booksList();
+  const finished=books.filter(b=>b.status==='done'||pagesRead(b.id)>=(b.totalPages||Infinity)).length;
+  const totalPages=STATE.sessions.reduce((a,s)=>a+s.pages,0);
+  const totalSessions=STATE.sessions.length;
+  const avg=totalSessions?Math.round(totalPages/totalSessions):0;
+  const streak=readingStreak();
+  const cards=[
+    {n:books.length,l:'Books on shelf',c:'mint'},
+    {n:finished,l:'Finished',c:'gold'},
+    {n:totalPages.toLocaleString(),l:'Pages read',c:'mint'},
+    {n:streak,l:'Day streak',c:'gold'},
+    {n:avg,l:'Avg pages / session',c:'mint'},
+    {n:totalSessions,l:'Sessions logged',c:'mint'},
+  ];
+  const ovHtml=cards.map(c=>'<div class="ovCard"><div class="ovNum '+c.c+'">'+c.n+'</div><div class="ovLbl">'+c.l+'</div></div>').join('');
+  if(!statsBookId||!books.find(b=>b.id===statsBookId)) statsBookId=books.length?books[0].id:null;
+  const chips=books.map(b=>'<button class="chip'+(statsBookId===b.id?' on':'')+'" data-statbook="'+b.id+'">'+esc(b.title)+'</button>').join('');
+  return '<div class="sheet"><div class="eyebrow">Progress</div>'
+    +'<div class="ovGrid" style="margin-top:14px">'+ovHtml+'</div>'
+    +(books.length?'<div class="chipRow">'+chips+'</div><div class="chart-card"><div class="plot" id="rdPlot"></div><div class="delta-cap" id="rdCap"></div></div>':'')
+    +'</div>';
+}
+function readingStreak(){
+  const days=new Set(STATE.sessions.map(s=>s.date));
+  let n=0; const d=new Date();
+  if(!days.has(ymd(d))) d.setDate(d.getDate()-1);
+  while(days.has(ymd(d))){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+function drawChart(){
+  const plot=$('#rdPlot'), cap=$('#rdCap'); if(!plot||!statsBookId) return;
+  const sessions=sessionsFor(statsBookId);
+  if(!sessions.length){ plot.innerHTML='<p class="emptyChart">no sessions logged for this book yet</p>'; if(cap)cap.textContent=''; return; }
+  let cum=0; const pts=sessions.map(s=>{ cum+=s.pages; return {date:s.date,total:cum,pages:s.pages}; });
+  const VB_W=600,VB_H=240,PADL=46,PADR=20,PADT=22,PADB=36;
+  const hi=Math.max(...pts.map(p=>p.total))*1.08||10;
+  const oldestAgo=Math.max(...pts.map(p=>daysAgo(p.date)),1);
+  const X=k=>{ const f=Math.min(1,Math.max(0,1-daysAgo(k)/Math.max(oldestAgo,1))); return PADL+f*(VB_W-PADL-PADR); };
+  const Y=v=>(VB_H-PADB)-(v/hi)*(VB_H-PADB-PADT);
+  const step=Math.max(5,Math.ceil(hi/5/5)*5);
+  let svg='<svg viewBox="0 0 '+VB_W+' '+VB_H+'" preserveAspectRatio="none"><defs><linearGradient id="rdFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--mint);stop-opacity:.22"/><stop offset="1" style="stop-color:var(--mint);stop-opacity:0"/></linearGradient></defs>';
+  for(let v=0;v<=hi;v+=step){ svg+='<line class="grid" x1="'+PADL+'" y1="'+Y(v)+'" x2="'+(VB_W-PADR)+'" y2="'+Y(v)+'"/><text class="axis-label" x="'+(PADL-10)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+Math.round(v)+'</text>'; }
+  const linePts=pts.map(p=>X(p.date)+','+Y(p.total));
+  if(pts.length>1){ svg+='<path class="area" d="M'+X(pts[0].date)+','+(VB_H-PADB)+' L'+linePts.join(' L')+' L'+X(pts[pts.length-1].date)+','+(VB_H-PADB)+' Z"/><polyline class="line" points="'+linePts.join(' ')+'"/>'; }
+  const best=pts.reduce((b,p)=>p.pages>b.pages?p:b,pts[0]);
+  pts.forEach(p=>{ svg+='<circle class="dot'+(p.date===best.date&&p.pages===best.pages?' best':'')+'" cx="'+X(p.date)+'" cy="'+Y(p.total)+'" r="5"/>'; });
+  svg+='<text class="xlab" x="'+PADL+'" y="'+(VB_H-6)+'" text-anchor="start">'+fmtDate(pts[0].date)+'</text><text class="xlab" x="'+(VB_W-PADR)+'" y="'+(VB_H-6)+'" text-anchor="end">today</text></svg>';
+  plot.innerHTML=svg;
+  if(cap) cap.innerHTML='best session <b style="color:var(--gold);font-style:normal">'+best.pages+' pages</b> · '+cum+' total';
+}
+
+/* ---- timer ticking ---- */
+let timerInt=null;
+function tickTimer(){
+  const el=$('#timerClock'); if(!el||!STATE.timer) return;
+  const secs=Math.floor((Date.now()-STATE.timer.startedAt)/1000);
+  const h=Math.floor(secs/3600), m=Math.floor((secs%3600)/60), s=secs%60;
+  el.textContent=(h?h+':'+pad(m):m)+':'+pad(s);
+}
+function startTimerLoop(){ stopTimerLoop(); if(STATE.timer){ tickTimer(); timerInt=setInterval(tickTimer,1000); } }
+function stopTimerLoop(){ if(timerInt){ clearInterval(timerInt); timerInt=null; } }
+
+/* ---- popups ---- */
+function svgPlus(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'; }
+let escHandler=null;
+function openPop(html,onMount){
+  const root=$('#popRoot');
+  root.innerHTML='<div class="scrim" id="scrim"><div class="pop" role="dialog" aria-modal="true">'+html+'</div></div>';
+  const scrim=$('#scrim');
+  scrim.addEventListener('click',ev=>{ if(ev.target===scrim) closePop(); });
+  const x=scrim.querySelector('.popX'); if(x) x.onclick=closePop;
+  escHandler=ev=>{ if(ev.key==='Escape') closePop(); }; document.addEventListener('keydown',escHandler);
+  if(onMount) onMount(scrim);
+}
+function closePop(){ $('#popRoot').innerHTML=''; if(escHandler){ document.removeEventListener('keydown',escHandler); escHandler=null; } }
+const popHead=(eyebrow,title)=>'<div class="popHead"><div><div class="eyebrow">'+eyebrow+'</div><div class="popTitle">'+title+'</div></div><button class="popX" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>';
+
+function openAddBook(){
+  openPop(popHead('New book','Add to your shelf')
+    +'<div class="field"><label>Title</label><input id="nbTitle" autocomplete="off" placeholder="e.g. Dune"></div>'
+    +'<div class="field"><label>Author (optional)</label><input id="nbAuthor" autocomplete="off" placeholder="e.g. Frank Herbert"></div>'
+    +'<div class="field"><label>Total pages</label><input id="nbPages" type="number" inputmode="numeric" placeholder="e.g. 412"></div>'
+    +'<div class="popBtns"><button class="pbtn ghost" id="nbCancel">cancel</button><button class="pbtn save" id="nbSave">Add book</button></div>',
+    scrim=>{
+      scrim.querySelector('#nbTitle').focus();
+      scrim.querySelector('#nbCancel').onclick=closePop;
+      scrim.querySelector('#nbSave').onclick=()=>{
+        const title=(scrim.querySelector('#nbTitle').value||'').trim();
+        const author=(scrim.querySelector('#nbAuthor').value||'').trim();
+        const pages=parseInt(scrim.querySelector('#nbPages').value,10);
+        if(!title||!Number.isFinite(pages)||pages<=0) return;
+        STATE.books.push({id:uid(),title,author,totalPages:pages,status:'reading',addedAt:todayKey()});
+        persist(); closePop(); render();
+      };
+    });
+}
+
+function openBookInfo(book){
+  const read=pagesRead(book.id), last=lastSession(book.id);
+  openPop(popHead('Book',book.title)
+    +(book.author?'<p class="field" style="margin-top:6px"><span class="hint" style="font-style:normal;color:var(--muted)">'+esc(book.author)+'</span></p>':'')
+    +'<div class="field"><label>Progress</label><span class="hint">'+read+' of '+book.totalPages+' pages'+(last?' · last session '+last.pages+' pages on '+fmtDate(last.date):'')+'</span></div>'
+    +'<div class="popBtns">'
+      +'<button class="pbtn ghost" id="biMarkDone">'+(book.status==='done'?'mark unfinished':'mark finished')+'</button>'
+      +'<button class="pbtn danger" id="biRemove">remove</button>'
+    +'</div>',
+    scrim=>{
+      scrim.querySelector('#biMarkDone').onclick=()=>{
+        book.status=book.status==='done'?'reading':'done'; persist(); closePop(); render();
+      };
+      scrim.querySelector('#biRemove').onclick=()=>{
+        STATE.books=STATE.books.filter(b=>b.id!==book.id);
+        STATE.sessions=STATE.sessions.filter(s=>s.bookId!==book.id);
+        if(STATE.timer&&STATE.timer.bookId===book.id) STATE.timer=null;
+        persist(); closePop(); render();
+      };
+    });
+}
+
+function openLogSession(book){
+  const mins=Math.max(1,Math.round((Date.now()-STATE.timer.startedAt)/60000));
+  const last=lastSession(book.id);
+  openPop(popHead('Finish · '+mins+' min','How many pages?')
+    +'<div class="field"><label>Pages read this session</label><input id="lsPages" type="number" inputmode="numeric" autocomplete="off" placeholder="'+(last?last.pages:'e.g. 24')+'"></div>'
+    +(last?'<p class="field" style="margin-top:0"><span class="hint" id="lsHint">last session: '+last.pages+' pages</span></p>':'')
+    +'<div class="popBtns"><button class="pbtn ghost" id="lsCancel">cancel</button><button class="pbtn save" id="lsSave">Log it</button></div>',
+    scrim=>{
+      const inp=scrim.querySelector('#lsPages'); inp.focus();
+      const hint=scrim.querySelector('#lsHint');
+      inp.addEventListener('input',()=>{
+        if(!hint||!last) return;
+        const v=parseInt(inp.value,10);
+        if(Number.isFinite(v)&&v>last.pages){ hint.textContent='beating your last session ('+last.pages+' pages)'; hint.classList.add('beat'); }
+        else { hint.textContent='last session: '+last.pages+' pages'; hint.classList.remove('beat'); }
+      });
+      scrim.querySelector('#lsCancel').onclick=()=>{ STATE.timer=null; stopTimerLoop(); persist(); closePop(); render(); };
+      scrim.querySelector('#lsSave').onclick=()=>{
+        const pages=parseInt(inp.value,10);
+        if(!Number.isFinite(pages)||pages<=0) return;
+        STATE.sessions.push({id:uid(),bookId:book.id,date:todayKey(),pages,minutes:mins});
+        STATE.timer=null; stopTimerLoop();
+        const total=pagesRead(book.id);
+        if(total>=book.totalPages) book.status='done';
+        persist(); closePop(); render();
+      };
+    });
+}
+
+/* ---- events ---- */
+function wireAfterRender(){
+  startTimerLoop();
+  drawChart();
+  const addBtn=$('#addBookBtn'); if(addBtn) addBtn.onclick=openAddBook;
+  const stopBtn=$('#timerStopBtn');
+  if(stopBtn) stopBtn.onclick=()=>{ const b=STATE.books.find(x=>x.id===STATE.timer.bookId); if(b) openLogSession(b); };
+  const cancelBtn=$('#timerCancelBtn');
+  if(cancelBtn) cancelBtn.onclick=()=>{ STATE.timer=null; stopTimerLoop(); persist(); render(); };
+}
+document.addEventListener('click',e=>{
+  const start=e.target.closest('[data-start]');
+  if(start){ STATE.timer={bookId:start.getAttribute('data-start'),startedAt:Date.now()}; persist(); render(); return; }
+  const info=e.target.closest('[data-info]');
+  if(info){ const b=STATE.books.find(x=>x.id===info.getAttribute('data-info')); if(b) openBookInfo(b); return; }
+  const menu=e.target.closest('[data-menu]');
+  if(menu){ const b=STATE.books.find(x=>x.id===menu.getAttribute('data-menu')); if(b) openBookInfo(b); return; }
+  const sb=e.target.closest('[data-statbook]');
+  if(sb){ statsBookId=sb.getAttribute('data-statbook'); render(); return; }
+});
+
+if(!window.Vitality){window.Vitality={save:function(d){try{localStorage.setItem('v:prev:reading',JSON.stringify(d));}catch(e){}return Promise.resolve(true);},load:function(){try{return Promise.resolve(JSON.parse(localStorage.getItem('v:prev:reading')||'{}'));}catch(e){return Promise.resolve({});}}};}
+(async()=>{
+  let d=null; try{ d=await window.Vitality.load(); }catch(e){ d=null; }
+  const usable=d&&typeof d==='object'&&!Array.isArray(d)&&Array.isArray(d.books);
+  STATE=usable?d:buildState();
+  STATE.sessions=Array.isArray(STATE.sessions)?STATE.sessions:[];
+  if(STATE.timer&&typeof STATE.timer!=='object') STATE.timer=null;
+  render();
+})();
+</script>
+</body>
+</html>

@@ -170,6 +170,25 @@
   .rdots i:nth-child(3){animation-delay:.4s}
   @keyframes rDot{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
   @media (prefers-reduced-motion: reduce){ .fuelVeil,.fuelSheet,.rbar span,.rdots i{transition-duration:.01ms!important;animation:none!important} }
+
+  /* ── water: goal-met state, a pacing clock, a streak line, best-day bar ── */
+  .count.met{color:var(--brand);text-shadow:0 0 54px rgba(110,231,183,.4)}
+  .streakLine{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#f1cf7a;margin-top:6px;text-align:center}
+  .streakLine b{font-weight:700}
+  .bar.best{background:linear-gradient(180deg,#f1cf7a,#caa24a)}
+  .paceCard{margin:26px auto 0;max-width:280px;border:1px solid rgba(110,231,183,.28);background:rgba(110,231,183,.05);border-radius:16px;padding:14px 16px;text-align:center}
+  .paceTime{font-family:var(--serif);font-style:italic;font-size:26px;color:var(--brand);font-variant-numeric:tabular-nums}
+  .paceLabel{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+  .paceCard.go .paceTime{color:#f1cf7a}
+  .paceDone{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--brand);margin:26px auto 0;text-align:center}
+
+  /* ── meds: its own tab, own tally (an exact fraction, not rounded), own
+        morning/evening (+ Anytime) blocks — same mechanics as the Stack,
+        but no pre-seeded drug data. What goes in is only ever what you
+        typed yourself, at the dose your own label says. ── */
+  .medMeter .fill{background:linear-gradient(90deg,#5ec9f5,#9ad7f5)}
+  .sRowItem.med:hover{border-color:rgba(154,215,245,.32)}
+  .sRowItem.med.done .sChk{background:#9ad7f5;border-color:#9ad7f5;color:#04140d}
 </style>
 </head>
 <body>
@@ -194,23 +213,59 @@ function persist(){window.Vitality.save(store)}
 function today(){if(!store.water||typeof store.water!=='object')store.water={};return store.water}
 
 function tabBar(){
-  return '<div class="tabBar">'+[['water','Water'],['stack','Stack']]
+  return '<div class="tabBar">'+[['water','Water'],['meds','Meds'],['stack','Stack']]
     .map(t=>'<button class="tab'+(view===t[0]?' on':'')+'" data-view="'+t[0]+'">'+t[1]+'</button>').join('')+'</div>';
 }
 
+/* ---- water streak: consecutive days (today counts once it's hit GOAL;
+   otherwise the streak counts through yesterday, so logging late in the
+   day never shows a broken streak you haven't actually broken yet) ---- */
+function waterStreak(){
+  const w=today(); let n=0; const d=new Date();
+  if((w[key(d)]||0)<GOAL) d.setDate(d.getDate()-1);
+  while((w[key(d)]||0)>=GOAL){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+/* ---- pacing: spread the remaining glasses evenly across what's left of the
+   day, finishing by 9 PM. Pure date math — recomputed on every render, no
+   drift, no ticking interval needed for the number itself. ---- */
+const WATER_FINISH_HOUR=21;
+function waterPace(n){
+  const now=new Date();
+  const finish=new Date(now.getFullYear(),now.getMonth(),now.getDate(),WATER_FINISH_HOUR,0,0,0);
+  const remaining=GOAL-n;
+  if(remaining<=0) return {done:true};
+  if(now>=finish) return {overdue:true,remaining};
+  const msLeft=finish-now;
+  const perGlass=msLeft/remaining;
+  const next=new Date(now.getTime()+perGlass);
+  const hh=next.getHours(), mm=next.getMinutes();
+  const h12=((hh+11)%12)+1, ap=hh>=12?'PM':'AM';
+  return {remaining, label:h12+':'+String(mm).padStart(2,'0')+' '+ap, over:false};
+}
 function renderWater(){
-  const w=today(),n=w[key()]||0;
-  let bars='';
+  const w=today(),n=w[key()]||0,met=n>=GOAL;
+  let bars='',best=0,bestI=-1;
+  for(let i=6;i>=0;i--){ const d=new Date();d.setDate(d.getDate()-i); const c=w[key(d)]||0; if(c>best){best=c;bestI=i;} }
   for(let i=6;i>=0;i--){
     const d=new Date();d.setDate(d.getDate()-i);
     const c=w[key(d)]||0,h=Math.max(3,Math.min(64,(c/GOAL)*64));
     const lab=i===0?'today':['SU','MO','TU','WE','TH','FR','SA'][d.getDay()];
-    bars+='<div class="day"><div class="bar'+(c?'':' zero')+'" style="height:'+h+'px" title="'+c+'"></div><span class="dLab'+(i===0?' today':'')+'">'+lab+'</span></div>';
+    const isBest=best>0&&i===bestI;
+    bars+='<div class="day"><div class="bar'+(c?'':' zero')+(isBest?' best':'')+'" style="height:'+h+'px" title="'+c+'"></div><span class="dLab'+(i===0?' today':'')+'">'+lab+'</span></div>';
   }
+  const streak=waterStreak();
+  const pace=waterPace(n);
+  let paceHtml='';
+  if(met){ paceHtml='<p class="paceDone">✓ goal hit for today</p>'; }
+  else if(pace.overdue){ paceHtml='<div class="paceCard go"><div class="paceTime">'+pace.remaining+' left</div><div class="paceLabel">past pace for a 9 PM finish — catch up when you can</div></div>'; }
+  else { paceHtml='<div class="paceCard"><div class="paceTime">by '+pace.label+'</div><div class="paceLabel">next glass · paced to finish by 9 PM</div></div>'; }
   return '<div class="kick">✦ water</div>'
-    +'<div class="count">'+n+'</div>'
+    +'<div class="count'+(met?' met':'')+'">'+n+'</div>'
     +'<div class="of">of '+GOAL+' today</div>'
+    +(streak>0?'<div class="streakLine"><b>'+streak+'</b> day'+(streak===1?'':'s')+' on target</div>':'')
     +'<div class="btnRow"><button class="minus" data-d="-1" aria-label="Remove one">−</button><button class="glass" data-d="1">+ Log a glass</button></div>'
+    +paceHtml
     +'<div class="week">'+bars+'</div>'
     +'<p class="foot">feeds your peak score · the mentor notices the pattern</p>';
 }
@@ -381,10 +436,139 @@ function buildEditList(){
 }
 
 /* ============================================================
+   MEDS — its own tab, own tally, own morning/evening (+ Anytime) blocks.
+   Deliberately carries NO pre-seeded drug database — medical dosing and
+   timing is your prescription's call, not something to guess at. What's
+   here is only ever what you typed yourself; searching just resurfaces
+   your own past entries so you're not retyping "Lisinopril 10mg" from
+   scratch every day.
+   ============================================================ */
+const medWindows=[{"key":"morning","title":"Morning","time":"AM"},{"key":"evening","title":"Evening","time":"PM"},{"key":"anytime","title":"Anytime","time":"No fixed time"}];
+function medsState(){
+  if(!store.meds||typeof store.meds!=='object') store.meds={items:[],takenByDay:{},offBlocks:[]};
+  if(!Array.isArray(store.meds.items)) store.meds.items=[];
+  if(!store.meds.takenByDay||typeof store.meds.takenByDay!=='object') store.meds.takenByDay={};
+  if(!Array.isArray(store.meds.offBlocks)) store.meds.offBlocks=[];
+  return store.meds;
+}
+function medItems(){ return medsState().items; }
+function medsTakenToday(){ const S=medsState(),k=key(); if(!Array.isArray(S.takenByDay[k])) S.takenByDay[k]=[]; return S.takenByDay[k]; }
+function medEffWindow(w){ return medsState().offBlocks.indexOf(w)>-1?'anytime':w; }
+
+function renderMedsView(){
+  const items=medItems(), tk=medsTakenToday();
+  const total=items.length; let done=0;
+  let railHtml='';
+  medWindows.forEach(w=>{
+    if(medsState().offBlocks.indexOf(w.key)>-1 && w.key!=='anytime') return;
+    const wItems=items.filter(it=>medEffWindow(it.window)===w.key);
+    let list='<div class="items">';
+    if(!wItems.length) list+='<div class="empty">Nothing yet</div>';
+    wItems.forEach(it=>{
+      const isDone=tk.indexOf(it.u)>-1; if(isDone)done++;
+      list+='<div class="sRowItem med'+(isDone?' done':'')+'" data-u="'+it.u+'">'
+        +'<button class="sChk" data-medtake="'+it.u+'" aria-label="take">'+ICON_CHECK+'</button>'
+        +'<div class="sBd"><div class="sNm">'+escStk(it.name)+'</div><div class="sMeta"><span class="sDose">'+escStk(it.dose||'')+'</span></div></div>'
+        +'<button class="sX" data-medrm="'+it.u+'" aria-label="remove">&times;</button></div>';
+    });
+    list+='</div>';
+    railHtml+='<div class="blk"><div class="side"><div class="t">'+w.title+'</div><div class="w">'+w.time+'</div></div>'+list+'</div>';
+  });
+  /* the day bar fills by the exact done/total fraction — no rounding on the
+     bar itself, only the displayed count is a clean whole number */
+  const frac=total?(done/total*100):0;
+  return '<div class="stackHead">'
+    +'<div class="tally"><div class="top"><span class="n"><b>'+done+'</b> of '+total+'</span><span class="lb">taken today</span></div>'
+    +'<div class="meter medMeter"><div class="fill" style="width:'+frac+'%"></div></div></div>'
+    +'<div class="stackSearch"><div class="sBox">'+ICON_SEARCH+'<input id="medQ" placeholder="Add a medication — name and dose" autocomplete="off"></div><div class="sDrops" id="medDrops"></div></div>'
+    +(total?'':'<div class="stackFirst"><p>Your meds start here — type a name to add it, with your own dose from your prescription.</p></div>')
+    +railHtml
+    +'<button class="stackBtn" data-medtiming>When to take them</button>'
+    +'</div>';
+}
+
+/* search suggests only what YOU have already typed in — the most recent
+   dose for a repeated name wins, so retyping a name refills its last dose */
+function medOwnList(){
+  const seen={}, out=[];
+  medItems().forEach(it=>{
+    const k=it.name.trim().toLowerCase(); if(!k) return;
+    if(!(k in seen)){ seen[k]=out.length; out.push({name:it.name,dose:it.dose||''}); }
+    else out[seen[k]].dose=it.dose||out[seen[k]].dose;
+  });
+  return out;
+}
+function medPaintDrops(q){
+  const drops=document.getElementById('medDrops'); if(!drops) return;
+  const v=(q||'').trim();
+  if(!v){ drops.classList.remove('on'); drops.innerHTML=''; return; }
+  const vl=v.toLowerCase();
+  const hits=medOwnList().filter(m=>m.name.toLowerCase().indexOf(vl)>-1).slice(0,6);
+  let html=hits.map(m=>'<button class="sRow" data-medadd="'+escStk(m.name)+'" data-meddose="'+escStk(m.dose)+'"><span class="ds">'+escStk(m.dose)+'</span><span class="nm">'+escStk(m.name)+'</span></button>').join('');
+  html+='<button class="sRow custom" data-medaddnew="'+escStk(v)+'"><span class="nm">Add <i>"'+escStk(v)+'"</i></span><div class="nt">your own dose, next</div></button>';
+  drops.innerHTML=html; drops.classList.add('on');
+}
+let medPendingName=null;
+function medAddWithName(nm){
+  medPendingName=nm;
+  openFuelSheet(
+    '<h3>'+escStk(nm)+'</h3>'
+    +'<p class="sub2">What dose, and when do you take it?</p>'
+    +'<div class="eiRow"><span class="eiLbl">Dose</span><input class="eiDoseIn" id="medNewDose" placeholder="e.g. 10 mg" autocomplete="off" style="width:100%"></div>'
+    +'<div class="eiRow" style="margin-top:14px"><span class="eiLbl">Time</span>'
+      +medWindows.map((w,i)=>'<button class="slotPick'+(i===2?' on':'')+'" data-mednewslot="'+w.key+'">'+escStk(w.title)+'</button>').join('')
+    +'</div>'
+    +'<button class="fuelDone" id="medNewSave" data-medsave style="margin-top:16px">Add to your meds</button>'
+  );
+  let picked='anytime';
+  document.querySelectorAll('[data-mednewslot]').forEach(b=>b.onclick=()=>{
+    picked=b.getAttribute('data-mednewslot');
+    document.querySelectorAll('[data-mednewslot]').forEach(x=>x.classList.toggle('on',x===b));
+  });
+  document.getElementById('medNewSave').onclick=()=>{
+    const dose=(document.getElementById('medNewDose')||{}).value||'';
+    medItems().push({u:newStkUid(),name:medPendingName,dose:dose.trim(),window:picked});
+    persist(); closeFuelSheet(); render();
+  };
+}
+
+function openMedsTimingSheet(){
+  openFuelSheet(
+    '<h3>When to take them</h3>'
+    +'<p class="sub2">Turn off a block you don\'t use — anything in it moves to Anytime.</p>'
+    +'<p class="k">Time blocks</p>'
+    +'<div class="tblocks" id="medBlocks"></div>'
+    +'<p class="tbHint">Tap a block to turn it off.</p>'
+    +'<p class="k">Your meds</p>'
+    +'<div id="medEditList"></div>'
+    +'<button class="fuelDone" id="fuelDone">Done</button>'
+  );
+  paintMedBlocks();
+  buildMedEditList();
+}
+function paintMedBlocks(){
+  const wrap=document.getElementById('medBlocks'); if(!wrap) return;
+  wrap.innerHTML=medWindows.filter(w=>w.key!=='anytime').map(w=>{
+    const off=medsState().offBlocks.indexOf(w.key)>-1;
+    return '<button class="tb'+(off?' off':'')+'" data-medtoggleblock="'+w.key+'">'+escStk(w.title)+'</button>';
+  }).join('');
+}
+function buildMedEditList(){
+  const box=document.getElementById('medEditList'); const items=medItems();
+  if(!items.length){ box.innerHTML='<p style="font-family:var(--serif);font-style:italic;color:var(--muted);font-size:13.5px">Add a medication first, then schedule it here.</p>'; return; }
+  box.innerHTML=items.map((it,idx)=>{
+    const pills=medWindows.map(w=>'<button class="slotPick'+(medEffWindow(it.window)===w.key?' on':'')+'" data-medei="'+idx+'" data-medw="'+w.key+'">'+escStk(w.title)+'</button>').join('');
+    return '<div class="editItem"><div class="eiHead">'+escStk(it.name)+'</div>'
+      +'<div class="eiRow"><span class="eiLbl">Dose</span><input class="eiDoseIn" data-medeidose="'+idx+'" value="'+escStk(it.dose||'')+'" placeholder="e.g. 10 mg"></div>'
+      +'<div class="eiRow"><span class="eiLbl">Time</span>'+pills+'</div></div>';
+  }).join('');
+}
+
+/* ============================================================
    BOOT / RENDER / EVENTS
    ============================================================ */
 function render(){
-  const html=view==='water'?renderWater():renderStackView();
+  const html=view==='water'?renderWater():view==='meds'?renderMedsView():renderStackView();
   document.getElementById('app').innerHTML=html+tabBar();
 }
 
@@ -462,11 +646,57 @@ document.addEventListener('click',e=>{
     return;
   }
   if(!e.target.closest('.stackSearch')){ const d=document.getElementById('stkDrops'); if(d) d.classList.remove('on'); }
+
+  const medtake=e.target.closest('[data-medtake]');
+  if(medtake){
+    const u=medtake.getAttribute('data-medtake'), tk=medsTakenToday();
+    const i=tk.indexOf(u);
+    if(i>-1){ tk.splice(i,1); persist(); render(); }
+    else{ tk.push(u); persist(); medtake.classList.add('pop'); setTimeout(render,340); }
+    return;
+  }
+  const medrm=e.target.closest('[data-medrm]');
+  if(medrm){
+    const u=medrm.getAttribute('data-medrm');
+    medsState().items=medItems().filter(it=>it.u!==u);
+    medsState().takenByDay[key()]=medsTakenToday().filter(x=>x!==u);
+    persist(); render(); return;
+  }
+  const medadd=e.target.closest('[data-medadd]');
+  if(medadd){
+    const nm=medadd.getAttribute('data-medadd'), ds=medadd.getAttribute('data-meddose')||'';
+    medItems().push({u:newStkUid(),name:nm,dose:ds,window:'anytime'}); persist();
+    document.getElementById('medQ').value=''; document.getElementById('medDrops').classList.remove('on');
+    render(); return;
+  }
+  const medaddnew=e.target.closest('[data-medaddnew]');
+  if(medaddnew){
+    document.getElementById('medDrops').classList.remove('on');
+    medAddWithName(medaddnew.getAttribute('data-medaddnew'));
+    return;
+  }
+  if(e.target.closest('[data-medtiming]')){ openMedsTimingSheet(); return; }
+  const medtblk=e.target.closest('[data-medtoggleblock]');
+  if(medtblk){
+    const w=medtblk.getAttribute('data-medtoggleblock'), S=medsState(), i=S.offBlocks.indexOf(w);
+    if(i>-1) S.offBlocks.splice(i,1); else S.offBlocks.push(w);
+    persist(); paintMedBlocks(); render(); return;
+  }
+  const medslot=e.target.closest('[data-medei]');
+  if(medslot){
+    const idx=+medslot.getAttribute('data-medei'), it=medItems()[idx];
+    if(it){ it.window=medslot.getAttribute('data-medw'); persist(); buildMedEditList(); render(); }
+    return;
+  }
+  if(!e.target.closest('.stackSearch')){ const d=document.getElementById('medDrops'); if(d) d.classList.remove('on'); }
 });
 document.addEventListener('input',e=>{
   if(e.target.id==='stkQ'){ stkPaintDrops(e.target.value); return; }
+  if(e.target.id==='medQ'){ medPaintDrops(e.target.value); return; }
   const dosein=e.target.closest('[data-eidose]');
   if(dosein){ const idx=+dosein.getAttribute('data-eidose'), it=stackItems()[idx]; if(it){ it.dose=dosein.value; persist(); } return; }
+  const meddosein=e.target.closest('[data-medeidose]');
+  if(meddosein){ const idx=+meddosein.getAttribute('data-medeidose'), it=medItems()[idx]; if(it){ it.dose=meddosein.value; persist(); } return; }
 });
 
 function openSuppInfo(s){

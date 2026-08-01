@@ -27,6 +27,7 @@ export type CoreTileId =
   | 'peak'
   | 'brand'
   | 'finance'
+  | 'reading'
 
 /** A single live metric to surface on a tile (Train day, Fuel kcal). */
 export interface CoreStat {
@@ -191,6 +192,33 @@ export const CORE_TILES: Record<CoreTileId, CoreTile> = {
       </svg>
     ),
   },
+  reading: {
+    id: 'reading',
+    href: '/app/starter',
+    index: '08',
+    label: 'Reading',
+    orb: { mode: 'hop' },
+    defaultSize: 'm',
+    /* a bookmark, deliberately distinct from Library's stacked-books glyph
+       so the two are never confused at a glance */
+    glyph: (
+      <svg viewBox="-12 -12 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round">
+        <path d="M-4 -9 L4 -9 L4 9 L0 4 L-4 9 Z" />
+      </svg>
+    ),
+    /* short paragraph lines the orb hops across, page by page */
+    art: (
+      <svg className="art" viewBox="0 0 210 118">
+        <g style={{ opacity: 0.8 }}>
+          <line className="motd" x1="46" y1="42" x2="164" y2="42" />
+          <line className="motd" x1="46" y1="58" x2="150" y2="58" />
+          <line className="motd" x1="46" y1="74" x2="164" y2="74" />
+          <line className="motd" x1="46" y1="90" x2="120" y2="90" />
+        </g>
+        <g className="orb" transform="translate(105 59)"><circle className="glow" r="9" /><circle className="node" r="3.4" /></g>
+      </svg>
+    ),
+  },
 }
 
 /**
@@ -261,6 +289,7 @@ export const DEFAULT_HOME_ORDER: HomeTileId[] = [
   'brand',
   'peak',
   'finance',
+  'reading',
 ]
 
 /** Is this id one of the pre-installed core tiles (incl. Vee)? */
