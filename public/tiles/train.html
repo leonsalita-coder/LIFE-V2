@@ -61,6 +61,7 @@
   .sheet { position: relative; width: 100%; max-width: 560px; margin: 0 auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px 20px 24px; backdrop-filter: blur(20px) saturate(1.2); -webkit-backdrop-filter: blur(20px) saturate(1.2); opacity: 0; transform: translateY(14px); animation: rise .6s var(--spring) forwards; }
   @keyframes rise { to { opacity: 1; transform: none; } }
   .eyebrow { font-family: var(--vt-mono); text-transform: uppercase; letter-spacing: .2em; font-size: 11px; font-weight: 600; color: var(--muted); }
+  .streakPill { font-family: var(--vt-mono); text-transform: none; letter-spacing: .02em; font-size: 11px; font-weight: 600; color: var(--gold); background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3); border-radius: 999px; padding: 4px 10px; display:none; }
 
   /* day tabs */
   .daytabs { display:flex; gap:3px; background: var(--row); border:1px solid var(--line); border-radius:12px; padding:4px; margin-top:14px; }
@@ -92,6 +93,26 @@
   .pfill { height:100%; border-radius:999px; background: linear-gradient(90deg,#3ddc97,#a7f3d0); transition: width .5s var(--ease); }
   .plabel { font-family: var(--serif); font-style:italic; font-size:14px; color: var(--muted); margin-top:9px; }
   .plabel b { color: var(--text); font-weight:500; }
+
+  /* warm-up / cooldown checklists */
+  .wcSection { margin-top:16px; }
+  .wcSection:empty { display:none; }
+  .wcHead { width:100%; display:flex; align-items:center; gap:8px; background:none; border:1px solid var(--line); border-radius:12px; padding:10px 13px; cursor:pointer; color:var(--muted-strong); font:inherit; }
+  .wcCaret { color:var(--mint); font-size:11px; width:10px; }
+  .wcTitle { font-size:12.5px; font-weight:600; letter-spacing:.04em; }
+  .wcCount { margin-left:auto; font-family:var(--vt-mono); font-size:10.5px; color:var(--muted); }
+  .wcBody { padding:12px 4px 2px; }
+  .wcItem { display:flex; align-items:center; gap:10px; padding:7px 2px; }
+  .wcCheck { flex:none; width:20px; height:20px; border-radius:6px; border:1px solid var(--hair); background:none; color:var(--mint); font-size:12px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .wcCheck.on { background:var(--mint); border-color:var(--mint); color:var(--ink); }
+  .wcTxt { flex:1; font-size:13.5px; color:var(--text); }
+  .wcTxt.done { color:var(--muted); text-decoration:line-through; }
+  .wcX { flex:none; background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:2px 4px; }
+  .wcX:hover { color:var(--fail); }
+  .wcAdd { display:flex; gap:8px; margin-top:6px; }
+  .wcIn { flex:1; background:var(--bg); border:1px solid var(--hair); border-radius:9px; color:var(--text); font:inherit; font-size:13px; padding:8px 10px; }
+  .wcIn:focus { outline:none; border-color:var(--mint); }
+  .wcAddBtn { background:var(--mint); color:var(--ink); border:none; border-radius:9px; padding:0 14px; font-weight:700; cursor:pointer; }
 
   /* exercises */
   .exwrap { margin-top:6px; }
@@ -156,6 +177,15 @@
   .pillMiss:hover { color: var(--fail); }
   .pillStatus { font-family: var(--serif); font-style:italic; font-size:14px; cursor:default; }
   .pillPr { font-style:italic; color: var(--gold); }
+  .pillDrop { background:none; border:none; font-family: var(--serif); font-style:italic; font-size:12.5px; color: var(--mint); cursor:pointer; padding:2px 4px; white-space:nowrap; }
+  .pillDrop:hover { color:#fff; }
+  .pillWrap { display:flex; flex-direction:column; gap:6px; }
+  .drops:empty { display:none; }
+  .dropRow { display:flex; align-items:center; gap:9px; padding:8px 15px 8px 30px; margin-left:6px; border-left:2px solid var(--hair); font-size:14px; }
+  .dropArrow { color:var(--muted); font-size:13px; }
+  .pillInput.small { font-size:.85em; }
+  .dropX { background:none; border:none; color:var(--muted); font-size:15px; cursor:pointer; padding:2px 4px; margin-left:auto; }
+  .dropX:hover { color: var(--fail); }
   .pillReset { background:none; border:none; cursor:pointer; padding:6px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:currentColor; opacity:.55; transition: opacity .15s, background .15s; }
   .pillReset svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
   .pillReset:hover { opacity:1; background: rgba(0,0,0,.12); }
@@ -350,7 +380,7 @@
 <div class="shell">
 <div class="starterTag">✦ starter — the value is what you build · the videos show how</div>
   <div class="sheet" id="sheet">
-    <div class="eyebrow">Today's session</div>
+    <div class="eyebrow" style="display:flex;align-items:center;justify-content:space-between">Today's session<span id="streakPill" class="streakPill"></span></div>
     <div class="daytabs" id="daytabs"></div>
     <div class="daydots" id="daydots"></div>
     <div class="dayhead">
@@ -359,7 +389,9 @@
       <button class="moonbtn" id="moonbtn" title="Mark the whole day a rest day"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>rest day</span></button>
     </div>
     <div class="progress" id="progress"><div class="ptrack"><div class="pfill" id="pfill"></div></div><div class="plabel" id="plabel"></div></div>
+    <div class="wcSection" id="warmupSlot"></div>
     <div class="exwrap" id="exwrap"></div>
+    <div class="wcSection" id="cooldownSlot"></div>
     <div class="finishRow"><button class="finishBtn" id="finishBtn">finish session</button></div>
     <button class="freshbtn" id="freshbtn">Start fresh</button>
     <p class="store-note">Saved to your Vitality dashboard.</p>
@@ -474,7 +506,9 @@ function buildState(){
   const days = {};
   ORDER.forEach(key=>{
     const p = PROGRAM[key];
-    days[key] = { name:p.name, type:p.type||'', restDay:!!p.restDay, off:false, ex:(p.exercises||[]).map(e=>{
+    days[key] = { name:p.name, type:p.type||'', restDay:!!p.restDay, off:false,
+      warmup: p.restDay?[]:seedChecklist(DEFAULT_WARMUP[key]), cooldown: p.restDay?[]:seedChecklist(DEFAULT_COOLDOWN[key]),
+      ex:(p.exercises||[]).map(e=>{
       const seedLog = (SEED&&SEED.log&&SEED.log[e.id]) || null;
       const lk = lastRealKg(e.id);
       return { id:e.id, name:e.name, tier:e.tier, sets:e.sets, reps:e.reps, kg:e.kg, perHand:!!e.perHand, rest:e.rest||120,
@@ -483,7 +517,27 @@ function buildState(){
         hist: (SEED&&SEED.hist&&SEED.hist[e.id]) ? JSON.parse(JSON.stringify(SEED.hist[e.id])) : [] };
     })};
   });
-  return { active:(SEED&&SEED.active)||'push', unit:'kg', submitted:false, days, customLib:{} };
+  return { active:(SEED&&SEED.active)||'push', unit:'kg', submitted:false, days, customLib:{}, finishedDates:[] };
+}
+/* ---- warm-up / cooldown defaults, seeded once per fresh day ------- */
+const DEFAULT_WARMUP = {
+  push: ['5 min easy cardio', 'Band pull-aparts × 15', 'Push-up ramp-up × 10'],
+  pull: ['5 min easy cardio', 'Scap pulls × 10', 'Light band rows × 15'],
+  legs: ['5 min easy cardio', 'Bodyweight squats × 15', 'Leg swings × 10/side'],
+};
+const DEFAULT_COOLDOWN = {
+  push: ['Chest doorway stretch · 30s/side', 'Triceps overhead stretch · 30s/side'],
+  pull: ['Lat stretch · 30s/side', 'Bicep wall stretch · 30s/side'],
+  legs: ['Quad stretch · 30s/side', 'Hamstring stretch · 30s/side', 'Calf wall stretch · 30s/side'],
+};
+function seedChecklist(list){ return (list||[]).map(text=>({text, done:false})); }
+/* ---- streak: consecutive days a session was finished --------------- */
+function currentStreak(){
+  const set=new Set(STATE.finishedDates||[]);
+  let n=0, d=new Date();
+  if(!set.has(ymd(d))) d.setDate(d.getDate()-1);
+  while(set.has(ymd(d))){ n++; d.setDate(d.getDate()-1); }
+  return n;
 }
 /* ---- AI-classified exercises (typed by name, not in the built-in library) -
    Merged into LIB lookups everywhere below. Cached in STATE.customLib so a
@@ -533,7 +587,7 @@ function dotsIcon(){ return '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="
 function gripIcon(){ return '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>'; }
 
 function render(){
-  renderTabs(); renderDots(); renderHead(); renderProgress(); renderBody(); saveState();
+  renderTabs(); renderDots(); renderHead(); renderProgress(); renderBody(); renderStreak(); saveState();
 }
 function renderTabs(){
   const el = $('#daytabs');
@@ -565,16 +619,38 @@ function renderProgress(){
 }
 function renderBody(){
   const wrap=$('#exwrap'); const d=curDay();
-  if(d.restDay){ wrap.innerHTML = restPanelHTML('Rest day.', "Optional active recovery: a walk, light cardio, some mobility. The dashboard logs anything you do. Your lifting picks up tomorrow.", false); $('#finishBtn').parentElement.style.display='none'; wireRestPanel(); return; }
+  if(d.restDay){ wrap.innerHTML = restPanelHTML('Rest day.', "Optional active recovery: a walk, light cardio, some mobility. The dashboard logs anything you do. Your lifting picks up tomorrow.", false); $('#finishBtn').parentElement.style.display='none'; $('#warmupSlot').innerHTML=''; $('#cooldownSlot').innerHTML=''; wireRestPanel(); return; }
   $('#finishBtn').parentElement.style.display='';
-  if(d.off){ wrap.innerHTML = restPanelHTML(d.name+' is a rest day.', "You marked today off. Your "+d.name.toLowerCase()+" lifts are paused. Tap below to bring the session back.", true); wireRestPanel(); $('#finishBtn').parentElement.style.display='none'; return; }
+  if(d.off){ wrap.innerHTML = restPanelHTML(d.name+' is a rest day.', "You marked today off. Your "+d.name.toLowerCase()+" lifts are paused. Tap below to bring the session back.", true); wireRestPanel(); $('#finishBtn').parentElement.style.display='none'; $('#warmupSlot').innerHTML=''; $('#cooldownSlot').innerHTML=''; return; }
+  renderChecklist('#warmupSlot', d.warmup, 'warm', 'Warm-up');
   wrap.innerHTML='';
   sortedEx(d).forEach(e=>{ wrap.appendChild(renderCard(e, d)); });
   const add=document.createElement('button'); add.className='addLift';
   add.innerHTML='<span class="addLiftRing">'+svg('<path d="M12 5v14M5 12h14"/>')+'</span><span class="addLiftLabel">add a lift</span>';
   add.onclick=()=> openSwap(null);
   wrap.appendChild(add);
+  renderChecklist('#cooldownSlot', d.cooldown, 'cool', 'Cooldown');
   renderFinish(d);
+}
+/* ---- warm-up / cooldown checklists --------------------------------- */
+const openSections={};
+function renderChecklist(sel, list, key, title){
+  const el=$(sel); if(!list){ el.innerHTML=''; return; }
+  const doneCount=list.filter(i=>i.done).length; const open=!!openSections[key];
+  el.innerHTML = '<button class="wcHead" data-act="wcToggle"><span class="wcCaret">'+(open?'▾':'▸')+'</span><span class="wcTitle">'+title+'</span><span class="wcCount">'+doneCount+'/'+list.length+'</span></button>'
+    + (open ? '<div class="wcBody">'
+        + list.map((it,i)=>'<div class="wcItem"><button class="wcCheck '+(it.done?'on':'')+'" data-i="'+i+'" data-act="wcCheck">'+(it.done?'✓':'')+'</button><span class="wcTxt'+(it.done?' done':'')+'">'+escapeHtml(it.text)+'</span><button class="wcX" data-i="'+i+'" data-act="wcRm">×</button></div>').join('')
+        + '<div class="wcAdd"><input class="wcIn" placeholder="Add item"/><button class="wcAddBtn" data-act="wcAdd">+</button></div></div>'
+      : '');
+  el.querySelector('[data-act="wcToggle"]').onclick=()=>{ openSections[key]=!open; renderBody(); };
+  if(open){
+    el.querySelectorAll('[data-act="wcCheck"]').forEach(b=> b.onclick=()=>{ list[+b.dataset.i].done=!list[+b.dataset.i].done; saveState(); renderBody(); });
+    el.querySelectorAll('[data-act="wcRm"]').forEach(b=> b.onclick=()=>{ list.splice(+b.dataset.i,1); saveState(); renderBody(); });
+    const inp=el.querySelector('.wcIn');
+    const addIt=()=>{ const v=inp.value.trim(); if(!v) return; list.push({text:v,done:false}); saveState(); renderBody(); };
+    el.querySelector('.wcAddBtn').onclick=addIt;
+    inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); addIt(); } });
+  }
 }
 function restPanelHTML(title, body, undo){
   return '<div class="restPanel"><div class="moon">'+svg('<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>','')+'</div><h3>'+title+'</h3><p>'+body+'</p>'+(undo?'<button class="undo" id="undoOff">bring the session back</button>':'')+'</div>';
@@ -585,7 +661,17 @@ function renderFinish(d){
   const btn=$('#finishBtn'); const t=dayTotals(d);
   if(STATE.submitted){ btn.textContent='re-lock session'; btn.classList.add('locked'); btn.disabled=false; }
   else { btn.textContent='finish session'; btn.classList.remove('locked'); btn.disabled = t.logged===0; }
-  btn.onclick=()=>{ STATE.submitted=!STATE.submitted; renderFinish(d); saveState(); };
+  btn.onclick=()=>{
+    STATE.submitted=!STATE.submitted;
+    if(STATE.submitted){ STATE.finishedDates=STATE.finishedDates||[]; if(!STATE.finishedDates.includes(today)) STATE.finishedDates.push(today); }
+    renderFinish(d); renderStreak(); saveState();
+  };
+}
+function renderStreak(){
+  const el=$('#streakPill'); if(!el) return;
+  const n=currentStreak();
+  el.textContent = n>0 ? n+' day streak' : '';
+  el.style.display = n>0 ? '' : 'none';
 }
 
 function renderCard(e, day){
@@ -617,7 +703,7 @@ function renderCard(e, day){
   card.querySelectorAll('[data-act]').forEach(b=>{ b.onclick=(ev)=>{ ev.stopPropagation(); handleAct(b.dataset.act, e, day, b); }; });
   // pills
   const pillWrap=card.querySelector('.pills');
-  for(let i=0;i<e.log.length;i++) pillWrap.appendChild(renderPill(e, rx, i));
+  for(let i=0;i<e.log.length;i++) pillWrap.appendChild(renderPillGroup(e, rx, i));
   // rest timer
   if(restTimers[e.id]) mountRestBar(card, e);
   // drag
@@ -626,6 +712,17 @@ function renderCard(e, day){
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+function renderPillGroup(e, rx, idx){
+  const s=e.log[idx];
+  const frag=document.createElement('div'); frag.className='pillWrap';
+  frag.appendChild(renderPill(e, rx, idx));
+  if(s && !s.fail){
+    const drops=document.createElement('div'); drops.className='drops';
+    (s.drops||[]).forEach((dr,di)=> drops.appendChild(renderDropRow(e, idx, di)));
+    frag.appendChild(drops);
+  }
+  return frag;
+}
 function renderPill(e, rx, idx){
   const kind=classifySet(e, idx); const s=e.log[idx]; const logged=kind!=='empty';
   const prefillKg = s?s.kg:(e.lastKg!=null?e.lastKg:rx.kg);
@@ -646,7 +743,9 @@ function renderPill(e, rx, idx){
     + '<span class="pillSpacer"></span>'
     + '<div class="pillActions">'
     + (logged
-        ? '<span class="pillStatus">'+(pr?'<span class="pillPr">★ </span>':'')+status+'</span><button class="pillReset" aria-label="Undo set">'+IC_reset()+'</button>'
+        ? '<span class="pillStatus">'+(pr?'<span class="pillPr">★ </span>':'')+status+'</span>'
+          + (kind==='done'?'<button class="pillDrop" aria-label="Add drop set">+ drop</button>':'')
+          + '<button class="pillReset" aria-label="Undo set">'+IC_reset()+'</button>'
         : '<button class="pillHit" aria-label="Log set">hit it →</button><button class="pillMiss" aria-label="Mark missed">miss</button>')
     + '</div>';
   const wIn=row.querySelector('.w'), rIn=row.querySelector('.r');
@@ -657,6 +756,22 @@ function renderPill(e, rx, idx){
   const hit=row.querySelector('.pillHit'); if(hit) hit.addEventListener('click',ev=>{ stop(ev); commit(); });
   const miss=row.querySelector('.pillMiss'); if(miss) miss.addEventListener('click',ev=>{ stop(ev); const kg=parseFloat(wIn.value)|| (e.lastKg!=null?e.lastKg:rx.kg); doLog(e, idx, kg, 0, true); });
   const reset=row.querySelector('.pillReset'); if(reset) reset.addEventListener('click',ev=>{ stop(ev); e.log[idx]=null; stopRest(e.id); render(); });
+  const dropBtn=row.querySelector('.pillDrop'); if(dropBtn) dropBtn.addEventListener('click',ev=>{ stop(ev); addDrop(e, idx); });
+  return row;
+}
+function addDrop(e, idx){
+  const s=e.log[idx]; if(!s) return; s.drops=s.drops||[];
+  const lastKg = s.drops.length? s.drops[s.drops.length-1].kg : s.kg;
+  s.drops.push({ kg:r1(lastKg*0.8), reps:s.reps }); saveState(); render();
+}
+function renderDropRow(e, idx, di){
+  const s=e.log[idx]; const dr=s.drops[di];
+  const row=document.createElement('div'); row.className='dropRow';
+  row.innerHTML = '<span class="dropArrow">↳</span><input class="pillInput w small" type="number" inputmode="decimal" value="'+dr.kg+'" aria-label="Drop weight"/><span class="pillUnit">'+STATE.unit+'</span><span class="pillTimes">×</span><input class="pillInput r small" type="number" inputmode="numeric" value="'+dr.reps+'" aria-label="Drop reps"/><button class="dropX" aria-label="Remove drop">×</button>';
+  const wIn=row.querySelector('.w'), rIn=row.querySelector('.r');
+  const commit=()=>{ const kg=parseFloat(wIn.value); const reps=Math.round(parseFloat(rIn.value)); if(Number.isFinite(kg)&&kg>=0) dr.kg=kg; if(Number.isFinite(reps)&&reps>=0) dr.reps=reps; saveState(); };
+  wIn.addEventListener('change',commit); rIn.addEventListener('change',commit);
+  row.querySelector('.dropX').addEventListener('click',()=>{ s.drops.splice(di,1); saveState(); render(); });
   return row;
 }
 function IC_reset(){ return '<svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke="currentColor"><path d="M3.5 6.5 A6 6 0 1 0 6 3.2"/><polyline points="2.4 2.4 3.7 6.6 8 5.2"/></svg>'; }
@@ -985,6 +1100,8 @@ function spawnParticles(root){
   try{ d = await window.Vitality.load(); }catch(e){ d=null; }
   STATE = (d && typeof d==='object' && !Array.isArray(d) && d.days) ? d : buildState();
   STATE.customLib = STATE.customLib || {};
+  STATE.finishedDates = STATE.finishedDates || [];
+  ORDER.forEach(k=>{ const day=STATE.days[k]; if(day && !day.warmup) day.warmup = day.restDay?[]:seedChecklist(DEFAULT_WARMUP[k]); if(day && !day.cooldown) day.cooldown = day.restDay?[]:seedChecklist(DEFAULT_COOLDOWN[k]); });
   render(); wireFresh();
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
 })();
