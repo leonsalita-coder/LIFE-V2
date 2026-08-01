@@ -91,7 +91,10 @@
   .wcCaret { color:var(--mint); font-size:11px; width:10px; }
   .wcTitle { font-size:12.5px; font-weight:600; letter-spacing:.04em; }
   .wcCount { margin-left:auto; font-family:var(--vt-mono); font-size:10.5px; color:var(--muted); }
-  .wcBody { padding:12px 4px 2px; }
+  .wcBody { display:grid; grid-template-rows: 0fr; transition: grid-template-rows .38s var(--premium); }
+  .wcBody.open { grid-template-rows: 1fr; }
+  .wcBodyInner { overflow:hidden; min-height:0; padding:12px 4px 2px; opacity:0; transition: opacity .22s var(--ease); }
+  .wcBody.open .wcBodyInner { opacity:1; transition-delay:.1s; }
   .wcItem { display:flex; align-items:center; gap:10px; padding:7px 2px; }
   .wcCheck { flex:none; width:20px; height:20px; border-radius:6px; border:1px solid var(--hair); background:none; color:var(--mint); font-size:12px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }
   .wcCheck.on { background:var(--mint); border-color:var(--mint); color:var(--ink); }
@@ -252,8 +255,15 @@
   .photoStatus { text-align:center; font-size:12px; color:var(--muted); margin-top:8px; min-height:14px; }
 
   /* aggregate progress stats */
-  .statsPickBtn.on { border-color: var(--mint); background: rgba(110,231,183,.08); }
-  .statsPickBtn.on .nm { color: var(--mint); }
+  /* stats picker — a horizontal scrollable chip row instead of a tall
+     vertical button stack (was the same list style as the exercise-search
+     results; a filter bar reads much cleaner as chips) */
+  .chipRow { display:flex; gap:8px; overflow-x:auto; padding:2px 2px 6px; margin:16px -2px 0; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .chipRow::-webkit-scrollbar { display:none; }
+  .chip { flex:none; padding:9px 16px; border-radius:999px; border:1px solid var(--line); background:rgba(255,255,255,.02); color:var(--muted-strong); font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; white-space:nowrap; transition: border-color .18s var(--ease), background .18s var(--ease), color .18s var(--ease), transform .15s var(--spring); }
+  .chip:hover { border-color:var(--hair); color:var(--text); }
+  .chip:active { transform:scale(.94); }
+  .chip.on { border-color:var(--mint); background:var(--mint); color:var(--ink); }
   .cal { display:flex; flex-wrap:wrap; gap:5px; padding:6px 2px; }
   .cal .cd { width:13px; height:13px; border-radius:3px; background: var(--row); border:1px solid var(--line); }
   .cal .cd.on { background: var(--mint); border-color: var(--mint); }
@@ -382,7 +392,8 @@
   .pbtn:disabled { opacity:.4; cursor:default; }
 
   /* overflow menu */
-  .menuPop { position:absolute; z-index:70; min-width:180px; background: var(--bg); border:1px solid var(--hair); border-radius:13px; padding:6px; box-shadow:0 18px 50px rgba(0,0,0,.6); opacity:0; transform: translateY(-6px) scale(.97); animation: popIn .22s var(--spring) forwards; }
+  .menuPop { position:absolute; z-index:70; min-width:180px; background: var(--bg); border:1px solid var(--hair); border-radius:13px; padding:6px; box-shadow:0 18px 50px rgba(0,0,0,.6); transform-origin: top right; opacity:0; transform: translateY(-10px); animation: menuDrop .26s var(--premium) forwards; }
+  @keyframes menuDrop { to { opacity:1; transform:none; } }
   .menuPop button { display:flex; align-items:center; gap:11px; width:100%; background:none; border:none; color: var(--text); font:inherit; font-size:14px; padding:11px 12px; border-radius:9px; cursor:pointer; text-align:left; transition: background .14s; }
   .menuPop button:hover { background: rgba(255,255,255,.05); }
   .menuPop button.danger { color: #e88a8c; }
@@ -463,6 +474,19 @@
   .ovCard::before { left: 0; right: 0; }
   .ovCard:hover { border-color: var(--hair); transform: translateY(-1px); }
 
+  /* ---- the coach FAB: a floating bubble replaces the old header
+     "Generate" button — one clear door to the AI coach instead of
+     competing for space in an already-busy header row. The idle breathing
+     glow borrows the same rhythm as the dashboard's own header gem
+     (rgba(110,231,183,…), ~4s ease-in-out) so it reads as the same
+     presence, just inside this tile. It's the ONE idle-looping animation
+     in the whole tile — everything else here only moves on interaction. */
+  .coachFab { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); z-index: 45; width: 54px; height: 54px; border-radius: 50%; border: 1px solid rgba(110,231,183,.4); background: linear-gradient(180deg, rgba(110,231,183,.16), rgba(110,231,183,.05)); color: var(--mint); display: grid; place-items: center; cursor: pointer; animation: fabBreathe 4s var(--ease) infinite; transition: transform .18s var(--spring), border-color .18s var(--ease); }
+  .coachFab svg { width: 22px; height: 22px; }
+  .coachFab:hover { border-color: var(--mint); }
+  .coachFab:active { transform: scale(.9); }
+  @keyframes fabBreathe { 0%,100% { box-shadow: 0 0 0 0 rgba(110,231,183,.22), 0 8px 24px -8px rgba(0,0,0,.5); } 50% { box-shadow: 0 0 0 10px rgba(110,231,183,0), 0 8px 24px -8px rgba(0,0,0,.5); } }
+
   /* ---- progress bar: a segmented track with a glowing traveling edge - */
   .ptrack { position: relative; height: 7px; border-radius: 999px; overflow: visible; background: repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 calc(10% - 2px), transparent calc(10% - 2px) 10%); }
   .pfill { position: relative; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #2fbd85, #6EE7B7 55%, #d7fbe9); box-shadow: 0 0 14px rgba(110,231,183,.35); transition: width .6s var(--spring); }
@@ -481,8 +505,7 @@
   .dot { opacity: 0; transform-box: fill-box; transform-origin: center; animation: dotPop .4s var(--spring) forwards; animation-delay: calc(min(var(--i, 0), 24) * 28ms + .45s); }
   @keyframes dotPop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
 
-  /* ---- reveal: the lower sheets fade up into place on load, staggered
-     (see wireReveal() — this is a guaranteed entrance, not scroll-triggered) */
+  /* ---- reveal: the lower sheets fade up as they scroll into view (see wireReveal()) */
   .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
   .reveal.in { opacity: 1; transform: none; }
 
@@ -509,7 +532,6 @@
     <div class="daydots" id="daydots"></div>
     <div class="dayhead">
       <h1 class="daytitle" id="daytitle">Today</h1>
-      <button class="moonbtn" id="genbtn" title="Talk to your coach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>Generate</span></button>
       <button class="moonbtn" id="moonbtn" title="Mark today a rest day"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Rest day</span></button>
     </div>
     <div class="progress" id="progress"><div class="ptrack"><div class="pfill" id="pfill"><span class="pcomet"></span></div></div><div class="plabel" id="plabel"></div></div>
@@ -541,12 +563,16 @@
   <div class="sheet reveal" id="statsSheet">
     <div class="eyebrow" style="display:flex;align-items:center;justify-content:space-between">Progress<button class="photoX" id="exportCsvBtn" title="Export CSV" style="font-size:11px;font-family:var(--vt-mono);letter-spacing:.08em;text-transform:uppercase">Export ⇩</button></div>
     <div class="ovGrid" id="overviewCards"></div>
-    <div class="swapList" id="statsPicker" style="margin-top:16px"></div>
+    <div class="chipRow" id="statsPicker"></div>
     <div class="range" id="statsRange"></div>
     <div class="chart-card"><div class="plot" id="statsPlot"></div><div class="delta-cap" id="statsCap"></div></div>
     <div class="stats" id="statsRow"></div>
   </div>
 </div>
+
+<button class="coachFab" id="coachFab" title="Talk to your coach" aria-label="Talk to your coach">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+</button>
 
 <div id="popRoot"></div>
 <div class="celebrate" id="celebrate">
@@ -689,9 +715,8 @@ function renderHead(){
   const moon=$('#moonbtn');
   moon.classList.toggle('on', session.off);
   moon.onclick=()=>{ session.off=!session.off; render(); };
-  const gen=$('#genbtn');
-  gen.style.display = session.off ? 'none' : '';
-  gen.onclick=()=> openGenerate();
+  const fab=$('#coachFab');
+  if(fab) fab.style.display = session.off ? 'none' : '';
 }
 function renderProgress(){
   const session=curSession(); const prog=$('#progress');
@@ -724,20 +749,29 @@ const openSections={};
 function renderChecklist(sel, list, key, title){
   const el=$(sel); if(!list){ el.innerHTML=''; return; }
   const doneCount=list.filter(i=>i.done).length; const open=!!openSections[key];
+  // the body is ALWAYS in the DOM (open or closed) so the accordion has a real
+  // before/after state to animate between — a conditionally-rendered block
+  // has nothing to transition from and just snaps.
   el.innerHTML = '<button class="wcHead" data-act="wcToggle"><span class="wcCaret">'+(open?'▾':'▸')+'</span><span class="wcTitle">'+title+'</span><span class="wcCount">'+doneCount+'/'+list.length+'</span></button>'
-    + (open ? '<div class="wcBody">'
-        + list.map((it,i)=>'<div class="wcItem"><button class="wcCheck '+(it.done?'on':'')+'" data-i="'+i+'" data-act="wcCheck">'+(it.done?'✓':'')+'</button><span class="wcTxt'+(it.done?' done':'')+'">'+escapeHtml(it.text)+'</span><button class="wcX" data-i="'+i+'" data-act="wcRm">×</button></div>').join('')
-        + '<div class="wcAdd"><input class="wcIn" placeholder="Add item"/><button class="wcAddBtn" data-act="wcAdd">+</button></div></div>'
-      : '');
-  el.querySelector('[data-act="wcToggle"]').onclick=()=>{ openSections[key]=!open; renderBody(); };
-  if(open){
-    el.querySelectorAll('[data-act="wcCheck"]').forEach(b=> b.onclick=()=>{ list[+b.dataset.i].done=!list[+b.dataset.i].done; saveState(); renderBody(); });
-    el.querySelectorAll('[data-act="wcRm"]').forEach(b=> b.onclick=()=>{ list.splice(+b.dataset.i,1); saveState(); renderBody(); });
-    const inp=el.querySelector('.wcIn');
-    const addIt=()=>{ const v=inp.value.trim(); if(!v) return; list.push({text:v,done:false}); saveState(); renderBody(); };
-    el.querySelector('.wcAddBtn').onclick=addIt;
-    inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); addIt(); } });
-  }
+    + '<div class="wcBody'+(open?' open':'')+'"><div class="wcBodyInner">'
+      + list.map((it,i)=>'<div class="wcItem"><button class="wcCheck '+(it.done?'on':'')+'" data-i="'+i+'" data-act="wcCheck">'+(it.done?'✓':'')+'</button><span class="wcTxt'+(it.done?' done':'')+'">'+escapeHtml(it.text)+'</span><button class="wcX" data-i="'+i+'" data-act="wcRm">×</button></div>').join('')
+      + '<div class="wcAdd"><input class="wcIn" placeholder="Add item"/><button class="wcAddBtn" data-act="wcAdd">+</button></div>'
+    + '</div></div>';
+  // toggling open/closed animates an EXISTING node in place (class swap, no
+  // rebuild) — a full renderBody() here would recreate wcBody already in its
+  // target state, defeating the transition entirely.
+  el.querySelector('[data-act="wcToggle"]').onclick=()=>{
+    openSections[key]=!open;
+    const body=el.querySelector('.wcBody'), caret=el.querySelector('.wcCaret');
+    if(body) body.classList.toggle('open', openSections[key]);
+    if(caret) caret.textContent = openSections[key] ? '▾' : '▸';
+  };
+  el.querySelectorAll('[data-act="wcCheck"]').forEach(b=> b.onclick=()=>{ list[+b.dataset.i].done=!list[+b.dataset.i].done; saveState(); renderBody(); });
+  el.querySelectorAll('[data-act="wcRm"]').forEach(b=> b.onclick=()=>{ list.splice(+b.dataset.i,1); saveState(); renderBody(); });
+  const inp=el.querySelector('.wcIn');
+  const addIt=()=>{ const v=inp.value.trim(); if(!v) return; list.push({text:v,done:false}); saveState(); renderBody(); };
+  el.querySelector('.wcAddBtn').onclick=addIt;
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); addIt(); } });
 }
 function restPanelHTML(title, body, undo){
   return '<div class="restPanel"><div class="moon">'+svg('<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>','')+'</div><h3>'+title+'</h3><p>'+body+'</p>'+(undo?'<button class="undo" id="undoOff">bring the session back</button>':'')+'</div>';
@@ -1631,8 +1665,11 @@ function renderStatsPicker(){
     {id:'__volume',label:'Volume'},{id:'__sessions',label:'Sessions'},
     {id:'__records',label:'Records'},{id:'__muscles',label:'Muscles'},{id:'__goals',label:'Goals'}
   ].concat(Object.keys(names).map(id=>({id,label:names[id]})));
-  el.innerHTML = items.map(it=>'<button class="swapItem statsPickBtn'+(statsView.id===it.id?' on':'')+'" data-id="'+it.id+'"><span class="nm">'+escapeHtml(it.label)+'</span></button>').join('');
-  el.querySelectorAll('.statsPickBtn').forEach(b=> b.onclick=()=>{ statsView={id:b.dataset.id}; renderStatsPicker(); drawStatsSection(); });
+  el.innerHTML = items.map(it=>'<button class="chip'+(statsView.id===it.id?' on':'')+'" data-id="'+it.id+'">'+escapeHtml(it.label)+'</button>').join('');
+  el.querySelectorAll('.chip').forEach(b=> b.onclick=()=>{
+    statsView={id:b.dataset.id}; renderStatsPicker(); drawStatsSection();
+    b.scrollIntoView({ behavior: (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'auto' : 'smooth', inline: 'center', block: 'nearest' });
+  });
 }
 function drawStatsSection(){
   const rangeEl=$('#statsRange');
@@ -1779,19 +1816,22 @@ function drawSessionsCal(){
   $('#statsRow').innerHTML='<div class="stat"><div class="k">Streak</div><div class="v gold">'+currentStreak()+'</div></div><div class="stat"><div class="k">Total sessions</div><div class="v">'+set.size+'</div></div><div class="stat"><div class="k">Lifts tracked</div><div class="v">'+Object.keys(STATE.exerciseNames||{}).length+'</div></div>';
 }
 
-/* ---- reveal: the lower sheets (goal / photos / stats) fade up into place
-   on load, staggered. NOT scroll-triggered — this tile's iframe is sized to
-   its own content and the OUTER dashboard page does the scrolling, so an
-   IntersectionObserver in here can never see real scroll progress (it just
-   fires immediately for everything, which reads as no animation at all).
-   A staggered entrance is the honest version of this effect in a sealed,
-   auto-height tile: guaranteed to actually show, every time. */
+/* ---- reveal: the lower sheets (goal / photos / stats) fade up as they
+   scroll into view. The tile's own iframe IS the real scrolling viewport
+   here (the host sizes it to a fixed box, .openStage{overflow:hidden} +
+   .openFrame{position:absolute;inset:0} — the dashboard never auto-grows
+   it to content), so IntersectionObserver's default root is exactly right.
+   Each fires once and stays revealed — re-hiding on scroll-back-up reads
+   as flicker, not polish. */
 function wireReveal(){
   const els=[...document.querySelectorAll('.reveal')];
   if(!els.length) return;
   const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reduced){ els.forEach(el=>el.classList.add('in')); return; }
-  els.forEach((el,i)=> setTimeout(()=>el.classList.add('in'), 120+i*130));
+  if(reduced || !('IntersectionObserver' in window)){ els.forEach(el=>el.classList.add('in')); return; }
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, { threshold:0.1, rootMargin:'0px 0px -30px 0px' });
+  els.forEach(el=>io.observe(el));
 }
 
 /* ---- inlined backdrop particles (self-contained) ------------------ */
@@ -1829,6 +1869,7 @@ function spawnParticles(root){
   render(); wireFresh();
   renderGoalBubble(); renderPhotos(); wirePhotoUpload(); renderOverviewCards(); renderStatsPicker(); drawStatsSection();
   const exportBtn=$('#exportCsvBtn'); if(exportBtn) exportBtn.onclick=exportCSV;
+  const fab=$('#coachFab'); if(fab) fab.onclick=()=> openGenerate();
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
   wireReveal();
 })();
