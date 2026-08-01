@@ -161,6 +161,30 @@ export function useTileHost(
         return
       }
 
+      // Smart workout generator — routed through /api/coach/workout so the
+      // Anthropic key stays server-side. Goal + equipment + time + day type
+      // in, a full session (same shape as classify) out. Also a real paid
+      // call — the tile only fires it on an explicit "generate" tap.
+      if (msg.type === 'generateWorkout') {
+        const qs = new URLSearchParams()
+        if (msg.goal) qs.set('goal', String(msg.goal).slice(0, 200))
+        if (msg.dayType) qs.set('dayType', String(msg.dayType).slice(0, 40))
+        if (msg.equipment) qs.set('equipment', String(msg.equipment).slice(0, 200))
+        if (msg.minutes) qs.set('minutes', String(msg.minutes))
+        try {
+          const r = await fetch('/api/coach/workout?' + qs.toString())
+          const j = await r.json()
+          if (Array.isArray(j?.exercises)) {
+            src.postMessage({ source: 'vitality-host', type: 'generateWorkout:result', id: msg.id, exercises: j.exercises }, '*')
+          } else {
+            src.postMessage({ source: 'vitality-host', type: 'generateWorkout:error', id: msg.id, reason: String(j?.error || 'no_data') }, '*')
+          }
+        } catch {
+          src.postMessage({ source: 'vitality-host', type: 'generateWorkout:error', id: msg.id, reason: 'fetch_failed' }, '*')
+        }
+        return
+      }
+
       // Cross-tile READ — the host hands a tile another slot's saved data so
       // tiles can react to each other client-side (e.g. Peak reshaping from the
       // Vitals recovery) with no /sweep and no connector. Read-only, the user's

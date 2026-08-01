@@ -306,6 +306,8 @@
   .swapItem:hover { border-color: var(--mint); background: rgba(110,231,183,.05); }
   .swapItem .nm { font-family: var(--serif); font-style:italic; font-size:17px; }
   .swapItem .mu { font-family: var(--vt-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color: var(--muted); margin-top:3px; }
+  .swapItem.genEquip.on { border-color: var(--mint); background: rgba(110,231,183,.08); }
+  .swapItem.genEquip.on .nm { color: var(--mint); }
   .swapItem .arr { margin-left:auto; color: var(--muted); } .swapItem:hover .arr { color: var(--mint); }
   .swapItem .arr svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
   .searchRow { display:flex; align-items:center; gap:10px; border:1px solid var(--hair); border-radius:12px; padding:11px 13px; }
@@ -386,6 +388,7 @@
     <div class="dayhead">
       <h1 class="daytitle" id="daytitle">Push</h1>
       <span class="daypill" id="daypill">Heavy</span>
+      <button class="moonbtn" id="genbtn" title="Generate today's workout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>generate</span></button>
       <button class="moonbtn" id="moonbtn" title="Mark the whole day a rest day"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>rest day</span></button>
     </div>
     <div class="progress" id="progress"><div class="ptrack"><div class="pfill" id="pfill"></div></div><div class="plabel" id="plabel"></div></div>
@@ -461,6 +464,10 @@ const PROGRAM = {
   rest: { name:'Rest', restDay:true, exercises:[] },
 };
 const ORDER = ['push','pull','legs','rest'];
+/* ---- the athlete's goal (written here by the mentor, same as weights.ts) - */
+const ATHLETE_GOAL = 'Become a peak athlete in taekwondo and soccer';
+const EQUIPMENT_OPTIONS = ['Bodyweight','Dumbbells','Resistance bands','Barbell','Machines','Kettlebells','Pull-up bar','Full gym'];
+const MINUTE_OPTIONS = [15,30,45,60];
 
 /* form reference + swap library (cues for the ⓘ button + swap options) */
 const LIB = {
@@ -517,7 +524,7 @@ function buildState(){
         hist: (SEED&&SEED.hist&&SEED.hist[e.id]) ? JSON.parse(JSON.stringify(SEED.hist[e.id])) : [] };
     })};
   });
-  return { active:(SEED&&SEED.active)||'push', unit:'kg', submitted:false, days, customLib:{}, finishedDates:[] };
+  return { active:(SEED&&SEED.active)||'push', unit:'kg', submitted:false, days, customLib:{}, finishedDates:[], genPrefs:{ equipment:['Barbell','Dumbbells','Machines'], minutes:45 } };
 }
 /* ---- warm-up / cooldown defaults, seeded once per fresh day ------- */
 const DEFAULT_WARMUP = {
@@ -548,6 +555,12 @@ function slugify(name){
   let id = base, n = 1;
   const taken = id2 => LIB[id2] || (STATE.customLib && STATE.customLib[id2]) || (curDay() && curDay().ex.some(x=>x.id===id2));
   while (taken(id)) { id = base + '_' + (++n); }
+  return id;
+}
+function slugifyAvoiding(name, usedSet){
+  const base = String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'exercise';
+  let id=base, n=1;
+  while (LIB[id] || (STATE.customLib && STATE.customLib[id]) || usedSet.has(id)) { id = base+'_'+(++n); }
   return id;
 }
 /* STATE is filled by the async boot below once the dashboard bridge resolves. */
@@ -608,6 +621,9 @@ function renderHead(){
   const moon=$('#moonbtn');
   if(d.restDay){ moon.style.display='none'; } else { moon.style.display=''; moon.classList.toggle('on', d.off); }
   moon.onclick=()=>{ d.off=!d.off; render(); };
+  const gen=$('#genbtn');
+  if(d.restDay){ gen.style.display='none'; } else { gen.style.display=''; }
+  gen.onclick=()=> openGenerate();
 }
 function renderProgress(){
   const d=curDay(); const prog=$('#progress');
@@ -990,6 +1006,66 @@ function openSwap(e){
     });
 }
 
+/* ---- smart generator ------------------------------------------------ */
+function openGenerate(){
+  const day=curDay(); const prefs=STATE.genPrefs;
+  const equipRows=EQUIPMENT_OPTIONS.map(o=>'<button class="swapItem genEquip'+(prefs.equipment.includes(o)?' on':'')+'" data-eq="'+o+'"><span class="nm">'+o+'</span></button>').join('');
+  const minRows=MINUTE_OPTIONS.map(m=>'<button class="'+(prefs.minutes===m?'on':'')+'" data-m="'+m+'">'+m+(m===60?'+':'')+' min</button>').join('');
+  openPop(popHead('Generate', day.name+' day')
+    + '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Built for your goal — '+ATHLETE_GOAL.toLowerCase()+'. Pick what you’ve got today.</p>'
+    + '<div class="secLbl">Equipment available</div>'
+    + '<div class="swapList" id="genEquipList">'+equipRows+'</div>'
+    + '<div class="secLbl">Time available</div>'
+    + '<div class="range" id="genMinutes" style="margin:0 0 0">'+minRows+'</div>'
+    + '<div id="genStatus" style="margin-top:16px;font-size:13px;min-height:16px"></div>'
+    + '<div class="popBtns"><button class="pbtn ghost" id="genCancel">cancel</button><button class="pbtn save" id="genGo">generate</button></div>',
+    scrim=>{
+      scrim.querySelectorAll('.genEquip').forEach(b=> b.onclick=()=>{
+        const v=b.dataset.eq; const i=prefs.equipment.indexOf(v);
+        if(i>=0) prefs.equipment.splice(i,1); else prefs.equipment.push(v);
+        b.classList.toggle('on'); saveState();
+      });
+      scrim.querySelectorAll('#genMinutes button').forEach(b=> b.onclick=()=>{
+        prefs.minutes=+b.dataset.m; scrim.querySelectorAll('#genMinutes button').forEach(x=>x.classList.toggle('on',x===b)); saveState();
+      });
+      scrim.querySelector('#genCancel').onclick=closePop;
+      scrim.querySelector('#genGo').onclick=()=> runGenerate(day, prefs, scrim);
+    });
+}
+async function runGenerate(day, prefs, scrim){
+  const btn=scrim.querySelector('#genGo'), status=scrim.querySelector('#genStatus');
+  if(!prefs.equipment.length){ status.style.color='var(--fail)'; status.textContent='Pick at least one equipment option.'; return; }
+  btn.disabled=true; status.style.color='var(--muted-strong)'; status.textContent='Building your session…';
+  try{
+    const list=await window.Vitality.generateWorkout({ goal:ATHLETE_GOAL, dayType:day.name, equipment:prefs.equipment.join(', '), minutes:prefs.minutes });
+    if(!Array.isArray(list) || !list.length) throw new Error('empty');
+    const used=new Set(day.ex.map(x=>x.id));
+    const defs=list.map(info=>{
+      const id=slugifyAvoiding(info.name||'exercise', used); used.add(id);
+      STATE.customLib=STATE.customLib||{};
+      STATE.customLib[id]={ equipment:info.equipment||'', primary:info.primary||[], secondary:info.secondary||[], gist:info.gist||'', steps:info.steps||[], cues:info.cues||[] };
+      const sets=Math.max(1,Math.min(8,Math.round(info.startingSets)||3));
+      return { id, name:info.name||'Exercise', tier:info.tier||2, sets, reps:Math.max(1,Math.round(info.startingReps)||10), kg:Number.isFinite(info.startingKg)?info.startingKg:0, perHand:false, rest:Math.max(30,Math.round(info.restSeconds)||90), lastKg:null, pinned:false, collapsed:false, deload:false, note:'', log:Array(sets).fill(null), hist:[] };
+    });
+    offerApply(day, defs, scrim);
+  }catch(err){
+    status.style.color='var(--fail)';
+    status.textContent = (err&&err.message==='no_key') ? 'Add your own Anthropic key to use this — ask your mentor.' : "Couldn't generate a session — try again.";
+    btn.disabled=false;
+  }
+}
+function offerApply(day, defs, scrim){
+  const status=scrim.querySelector('#genStatus'), btn=scrim.querySelector('#genGo');
+  btn.style.display='none';
+  status.style.color='var(--text)';
+  status.textContent = 'Got '+defs.length+' exercises. Add to today’s '+day.name.toLowerCase()+', or replace what’s there?';
+  const row=document.createElement('div'); row.className='popBtns'; row.style.marginTop='12px';
+  row.innerHTML='<button class="pbtn ghost" id="genAdd">Add alongside</button><button class="pbtn save" id="genReplace">Replace day</button>';
+  status.insertAdjacentElement('afterend', row);
+  row.querySelector('#genAdd').onclick=()=>{ day.ex.push(...defs); closePop(); render(); };
+  row.querySelector('#genReplace').onclick=()=>{ day.ex.forEach(x=>stopRest(x.id)); day.ex=defs; closePop(); render(); };
+}
+
 /* ---- tune popup --------------------------------------------------- */
 function openTune(e){
   const draft={ kg:e.kg, reps:e.reps, sets:e.sets, rest:e.rest };
@@ -1101,6 +1177,7 @@ function spawnParticles(root){
   STATE = (d && typeof d==='object' && !Array.isArray(d) && d.days) ? d : buildState();
   STATE.customLib = STATE.customLib || {};
   STATE.finishedDates = STATE.finishedDates || [];
+  STATE.genPrefs = STATE.genPrefs || { equipment:['Barbell','Dumbbells','Machines'], minutes:45 };
   ORDER.forEach(k=>{ const day=STATE.days[k]; if(day && !day.warmup) day.warmup = day.restDay?[]:seedChecklist(DEFAULT_WARMUP[k]); if(day && !day.cooldown) day.cooldown = day.restDay?[]:seedChecklist(DEFAULT_COOLDOWN[k]); });
   render(); wireFresh();
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
