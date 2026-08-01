@@ -258,6 +258,29 @@
   .cal .cd { width:13px; height:13px; border-radius:3px; background: var(--row); border:1px solid var(--line); }
   .cal .cd.on { background: var(--mint); border-color: var(--mint); }
   .cal .cd.off { background: rgba(224,106,108,.28); border-color: var(--fail); }
+  .photoBtnRow { display:flex; gap:10px; }
+  .photoBtnRow .addLift { flex:1; }
+  .ovGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:10px; }
+  .ovCard { border:1px solid var(--line); border-radius:14px; padding:16px 12px; text-align:center; }
+  .ovNum { font-family:var(--serif); font-style:italic; font-size:24px; font-weight:500; line-height:1; }
+  .ovNum.gold { color:var(--gold); }
+  .ovNum.mint { color:var(--mint); }
+  .ovLbl { font-family:var(--vt-mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:8px; }
+  .wdBars { display:flex; gap:8px; margin-top:18px; align-items:flex-end; height:72px; }
+  .wdBar { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; }
+  .wdTrack { flex:1; width:100%; display:flex; align-items:flex-end; }
+  .wdFill { width:100%; background:linear-gradient(180deg,#a7f3d0,#3ddc97); border-radius:4px 4px 0 0; min-height:2px; }
+  .wdLbl { font-family:var(--vt-mono); font-size:9px; color:var(--muted); text-transform:uppercase; }
+  .muscleBars { display:flex; flex-direction:column; gap:11px; padding:4px 2px; }
+  .mbRow { display:flex; align-items:center; gap:10px; }
+  .mbLbl { width:88px; flex:none; font-size:12px; color:var(--muted-strong); text-transform:capitalize; }
+  .mbTrack { flex:1; height:10px; border-radius:999px; background:rgba(255,255,255,.06); overflow:hidden; }
+  .mbFill { height:100%; background:linear-gradient(90deg,#3ddc97,#a7f3d0); border-radius:999px; }
+  .mbVal { width:56px; flex:none; text-align:right; font-family:var(--vt-mono); font-size:11px; color:var(--muted); }
+  .goalRow { position:relative; padding:12px 34px 14px 0; border-bottom:1px solid var(--line); }
+  .goalRow:last-of-type { border-bottom:none; }
+  .goalTop { display:flex; justify-content:space-between; font-size:13.5px; margin-bottom:9px; }
+  .goalRow .photoX { position:absolute; right:0; top:8px; }
   .insightBox { margin-top:12px; text-align:center; font-family: var(--serif); font-style:italic; font-size:13.5px; color: var(--mint); line-height:1.5; }
 
   /* ── popups (history / form / swap / tune / overflow menu) ─────────── */
@@ -430,13 +453,18 @@
     <div class="eyebrow">Progress photos</div>
     <div id="photoGallery" style="margin-top:14px"></div>
     <input type="file" id="photoInput" accept="image/*" style="display:none" />
-    <button class="addLift" id="addPhotoBtn"><span class="addLiftRing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="addLiftLabel">add a photo</span></button>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" />
+    <div class="photoBtnRow">
+      <button class="addLift" id="takePhotoBtn"><span class="addLiftRing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="addLiftLabel">take a photo</span></button>
+      <button class="addLift" id="addPhotoBtn"><span class="addLiftRing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="addLiftLabel">from library</span></button>
+    </div>
     <div id="photoStatus" class="photoStatus"></div>
   </div>
 
   <div class="sheet" id="statsSheet">
-    <div class="eyebrow">Progress</div>
-    <div class="swapList" id="statsPicker" style="margin-top:14px"></div>
+    <div class="eyebrow" style="display:flex;align-items:center;justify-content:space-between">Progress<button class="photoX" id="exportCsvBtn" title="Export CSV" style="font-size:11px;font-family:var(--vt-mono);letter-spacing:.08em;text-transform:uppercase">export ⇩</button></div>
+    <div class="ovGrid" id="overviewCards"></div>
+    <div class="swapList" id="statsPicker" style="margin-top:16px"></div>
     <div class="range" id="statsRange"></div>
     <div class="chart-card"><div class="plot" id="statsPlot"></div><div class="delta-cap" id="statsCap"></div></div>
     <div class="stats" id="statsRow"></div>
@@ -494,7 +522,7 @@ function buildState(){
     unit:'lb', submitted:false,
     session:{ date:today, off:false, warmup:[], cooldown:[], ex:[] },
     history:{}, customLib:{}, finishedDates:[], templates:[], deloadOverrides:{},
-    exerciseNames:{}, shortTermGoal:'', photos:[]
+    exerciseNames:{}, shortTermGoal:'', photos:[], sessionDurations:[], liftGoals:[]
   };
 }
 function seedChecklist(list){ return (list||[]).map(text=>({text, done:false})); }
@@ -643,9 +671,15 @@ function renderFinish(session){
     STATE.submitted=!STATE.submitted;
     if(STATE.submitted){
       STATE.finishedDates=STATE.finishedDates||[]; if(!STATE.finishedDates.includes(today)) STATE.finishedDates.push(today);
+      if(session.startedAt){
+        const mins=Math.max(1,Math.round((Date.now()-session.startedAt)/60000));
+        STATE.sessionDurations=STATE.sessionDurations||[];
+        const existing=STATE.sessionDurations.find(d=>d.date===today);
+        if(existing) existing.minutes=mins; else STATE.sessionDurations.push({date:today, minutes:mins});
+      }
       if(!session.insight) fetchInsight(session);
     }
-    renderFinish(session); renderStreak(); saveState();
+    renderFinish(session); renderStreak(); renderOverviewCards(); saveState();
   };
   renderInsight(session);
 }
@@ -890,6 +924,7 @@ function renderDropRow(e, idx, di){
 function IC_reset(){ return '<svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke="currentColor"><path d="M3.5 6.5 A6 6 0 1 0 6 3.2"/><polyline points="2.4 2.4 3.7 6.6 8 5.2"/></svg>'; }
 
 function doLog(e, idx, kg, reps, fail){
+  const _sess=curSession(); if(!_sess.startedAt) _sess.startedAt=Date.now();
   const wasComplete = exComplete(e);
   const pbBefore = bestKgExclToday(e);
   e.log[idx] = fail ? {kg, reps:0, fail:true} : {kg, reps};
@@ -1294,7 +1329,7 @@ function wireFresh(){
     clearTimeout(timer); armed=false; fb.textContent='Start fresh'; fb.classList.remove('arm');
     Object.keys(restTimers).forEach(stopRest);
     STATE=buildState(); STATE.submitted=false; render();
-    renderGoalBubble(); renderPhotos(); renderStatsPicker(); drawStatsSection();
+    renderGoalBubble(); renderPhotos(); renderOverviewCards(); renderStatsPicker(); drawStatsSection();
   };
 }
 
@@ -1345,57 +1380,214 @@ function renderPhotos(){
   el.querySelectorAll('.photoX').forEach(b=> b.onclick=()=>{ STATE.photos.splice(+b.dataset.i,1); saveState(); renderPhotos(); });
 }
 function wirePhotoUpload(){
-  const btn=$('#addPhotoBtn'), input=$('#photoInput'), status=$('#photoStatus');
-  if(!btn||!input) return;
-  btn.onclick=()=> input.click();
-  input.onchange=()=>{
-    const file=input.files && input.files[0]; input.value='';
-    if(!file) return;
-    if(!file.type.startsWith('image/')){ status.textContent='That’s not an image.'; return; }
-    if(file.size > 10*1024*1024){ status.textContent='Photo’s too large — try one under 10MB.'; return; }
-    status.textContent='Uploading…';
-    const reader=new FileReader();
-    reader.onload=async()=>{
-      const dataUrl=String(reader.result||'');
-      const comma=dataUrl.indexOf(',');
-      const mime=(dataUrl.slice(5,dataUrl.indexOf(';'))||'image/jpeg');
-      const base64=dataUrl.slice(comma+1);
-      const entry={ url:null, date:today, analysis:undefined };
-      STATE.photos=STATE.photos||[]; STATE.photos.push(entry); saveState(); renderPhotos();
-      try{
-        const res=await window.Vitality.addProgressPhoto({ base64, mime, goal:fullGoalContext() });
-        entry.url=(res&&res.url)||null; entry.analysis=(res&&res.analysis)||null;
-        if(!entry.url) entry.failed=true;
-      }catch(err){ entry.analysis=null; entry.failed=true; }
-      status.textContent=''; saveState(); renderPhotos();
-    };
-    reader.readAsDataURL(file);
+  const galleryBtn=$('#addPhotoBtn'), cameraBtn=$('#takePhotoBtn'), galleryInput=$('#photoInput'), cameraInput=$('#cameraInput');
+  if(!galleryBtn||!cameraBtn) return;
+  galleryBtn.onclick=()=> galleryInput.click();
+  cameraBtn.onclick=()=> cameraInput.click();
+  [galleryInput, cameraInput].forEach(input=>{ input.onchange=()=> handlePhotoFile(input); });
+}
+function handlePhotoFile(input){
+  const status=$('#photoStatus');
+  const file=input.files && input.files[0]; input.value='';
+  if(!file) return;
+  if(!file.type.startsWith('image/')){ status.textContent='That’s not an image.'; return; }
+  if(file.size > 10*1024*1024){ status.textContent='Photo’s too large — try one under 10MB.'; return; }
+  status.textContent='Uploading…';
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    const dataUrl=String(reader.result||'');
+    const comma=dataUrl.indexOf(',');
+    const mime=(dataUrl.slice(5,dataUrl.indexOf(';'))||'image/jpeg');
+    const base64=dataUrl.slice(comma+1);
+    const entry={ url:null, date:today, analysis:undefined };
+    STATE.photos=STATE.photos||[]; STATE.photos.push(entry); saveState(); renderPhotos();
+    try{
+      const res=await window.Vitality.addProgressPhoto({ base64, mime, goal:fullGoalContext() });
+      entry.url=(res&&res.url)||null; entry.analysis=(res&&res.analysis)||null;
+      if(!entry.url) entry.failed=true;
+    }catch(err){ entry.analysis=null; entry.failed=true; }
+    status.textContent=''; saveState(); renderPhotos();
   };
+  reader.readAsDataURL(file);
 }
 
 /* ====================================================================
-   PROGRESS STATS — pick a metric (aggregate volume, session calendar, or
-   a specific exercise) and a range, reusing the same range-picker pattern
-   as the per-exercise history popup but drawing straight from the global
-   STATE.history so it survives any single exercise being removed today.
+   OVERVIEW CARDS — fixed at-a-glance summary above the interactive
+   picker. Every number here is real arithmetic over data already
+   collected; nothing invented (no heart rate / calories / VO2 — this
+   app doesn't have that data, so it doesn't pretend to).
+   ================================================================= */
+function longestStreak(){
+  const dates=[...(STATE.finishedDates||[])].sort();
+  let longest=0, run=0, prev=null;
+  dates.forEach(d=>{
+    if(prev){ const [y,m,dd]=prev.split('-').map(Number); const pd=new Date(y,m-1,dd); pd.setDate(pd.getDate()+1); run = ymd(pd)===d ? run+1 : 1; }
+    else run=1;
+    longest=Math.max(longest,run); prev=d;
+  });
+  return longest;
+}
+function totalPRsAllTime(){
+  let count=0;
+  Object.keys(STATE.history||{}).forEach(id=>{
+    const h=(STATE.history[id]||[]).filter(s=>!s.off).slice().sort((a,b)=>a.date.localeCompare(b.date));
+    let bestKgSoFar=0, bestRepsAtBest=0;
+    h.forEach(entry=>{
+      const topR=Math.max(0,...(entry.sets||[]).filter(x=>!x.fail).map(x=>x.r||0));
+      const isPr = entry.kg>bestKgSoFar || (entry.kg===bestKgSoFar && topR>bestRepsAtBest);
+      if(isPr){ if(bestKgSoFar>0) count++; bestKgSoFar=Math.max(bestKgSoFar,entry.kg); bestRepsAtBest=Math.max(bestRepsAtBest,topR); }
+    });
+  });
+  return count;
+}
+function weeksSinceStart(){
+  const dates=[...(STATE.finishedDates||[])].sort();
+  if(!dates.length) return 1;
+  const [y,m,d]=dates[0].split('-').map(Number);
+  const days=Math.max(1, Math.round((new Date()-new Date(y,m-1,d))/DAY));
+  return Math.max(1, days/7);
+}
+function weekdayCounts(){
+  const counts=[0,0,0,0,0,0,0];
+  (STATE.finishedDates||[]).forEach(k=>{ const [y,m,d]=k.split('-').map(Number); counts[new Date(y,m-1,d).getDay()]++; });
+  return counts;
+}
+function muscleVolumeBreakdown(){
+  const map={};
+  Object.keys(STATE.history||{}).forEach(id=>{
+    const info=STATE.customLib && STATE.customLib[id];
+    const muscles=(info && info.primary && info.primary.length) ? info.primary : ['Other'];
+    const vol=(STATE.history[id]||[]).filter(s=>!s.off).reduce((a,s)=>a+(s.kg||0)*((s.sets&&s.sets.length)||0),0);
+    muscles.forEach(m=>{ map[m]=(map[m]||0)+vol/muscles.length; });
+  });
+  return Object.keys(map).map(m=>({m,vol:r1(map[m])})).sort((a,b)=>b.vol-a.vol);
+}
+function renderOverviewCards(){
+  const el=$('#overviewCards'); if(!el) return;
+  const totalMin=(STATE.sessionDurations||[]).reduce((a,s)=>a+(s.minutes||0),0);
+  const totalVol=Math.round(aggregateVolumeByDate().reduce((a,s)=>a+s.kg,0));
+  const cards=[
+    { n:(STATE.finishedDates||[]).length, l:'Sessions', c:'mint' },
+    { n:r1(totalMin/60), l:'Hours trained', c:'mint' },
+    { n:currentStreak(), l:'Day streak', c:'gold' },
+    { n:longestStreak(), l:'Longest streak', c:'gold' },
+    { n:totalPRsAllTime(), l:'Personal records', c:'gold' },
+    { n:totalVol.toLocaleString(), l:'Total '+STATE.unit+' lifted', c:'mint' },
+    { n:r1((STATE.finishedDates||[]).length/weeksSinceStart()), l:'Sessions / week', c:'mint' },
+    { n:Object.keys(STATE.exerciseNames||{}).length, l:'Exercises tracked', c:'mint' },
+  ];
+  el.innerHTML = cards.map(c=>'<div class="ovCard"><div class="ovNum '+c.c+'">'+c.n+'</div><div class="ovLbl">'+c.l+'</div></div>').join('');
+}
+function exportCSV(){
+  const rows=[['date','exercise','weight_'+STATE.unit,'reps_per_set']];
+  Object.keys(STATE.history||{}).forEach(id=>{
+    const name=(STATE.exerciseNames&&STATE.exerciseNames[id])||id;
+    (STATE.history[id]||[]).forEach(e=>{
+      const reps=(e.sets||[]).map(s=>s.fail?'F':s.r).join('|');
+      rows.push([e.date, name, e.kg, reps]);
+    });
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='training-history.csv'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+/* ====================================================================
+   PROGRESS STATS — pick a metric (aggregate volume, session calendar,
+   records, muscle breakdown, lift goals, or a specific exercise) and a
+   range, reusing the same range-picker pattern as the per-exercise
+   history popup but drawing straight from the global STATE.history so
+   it survives any single exercise being removed today.
    ================================================================= */
 let statsView={ id:'__volume' }, statsRangeKey='M';
 function renderStatsPicker(){
   const el=$('#statsPicker'); if(!el) return;
   const names=STATE.exerciseNames||{};
-  const items=[{id:'__volume',label:'Volume'},{id:'__sessions',label:'Sessions'}].concat(Object.keys(names).map(id=>({id,label:names[id]})));
+  const items=[
+    {id:'__volume',label:'Volume'},{id:'__sessions',label:'Sessions'},
+    {id:'__records',label:'Records'},{id:'__muscles',label:'Muscles'},{id:'__goals',label:'Goals'}
+  ].concat(Object.keys(names).map(id=>({id,label:names[id]})));
   el.innerHTML = items.map(it=>'<button class="swapItem statsPickBtn'+(statsView.id===it.id?' on':'')+'" data-id="'+it.id+'"><span class="nm">'+escapeHtml(it.label)+'</span></button>').join('');
   el.querySelectorAll('.statsPickBtn').forEach(b=> b.onclick=()=>{ statsView={id:b.dataset.id}; renderStatsPicker(); drawStatsSection(); });
 }
 function drawStatsSection(){
   const rangeEl=$('#statsRange');
-  const showRange = statsView.id!=='__sessions';
+  const showRange = statsView.id==='__volume' || (!statsView.id.startsWith('__'));
   rangeEl.style.display = showRange ? '' : 'none';
-  rangeEl.innerHTML=Object.keys(RANGES).map(k=>'<button class="'+(k===statsRangeKey?'on':'')+'" data-r="'+k+'">'+k+'</button>').join('');
-  rangeEl.querySelectorAll('button').forEach(b=> b.onclick=()=>{ statsRangeKey=b.dataset.r; drawStatsSection(); });
+  if(showRange){
+    rangeEl.innerHTML=Object.keys(RANGES).map(k=>'<button class="'+(k===statsRangeKey?'on':'')+'" data-r="'+k+'">'+k+'</button>').join('');
+    rangeEl.querySelectorAll('button').forEach(b=> b.onclick=()=>{ statsRangeKey=b.dataset.r; drawStatsSection(); });
+  }
   if(statsView.id==='__sessions') return drawSessionsCal();
   if(statsView.id==='__volume') return drawVolumeChart();
+  if(statsView.id==='__records') return drawRecords();
+  if(statsView.id==='__muscles') return drawMuscles();
+  if(statsView.id==='__goals') return drawGoals();
   return drawExerciseChart(statsView.id);
+}
+function drawRecords(){
+  const plot=$('#statsPlot'), cap=$('#statsCap');
+  plot.style.aspectRatio='auto';
+  const names=STATE.exerciseNames||{};
+  const rows=Object.keys(names).map(id=>{
+    const h=(STATE.history[id]||[]).filter(s=>!s.off); if(!h.length) return null;
+    const best=h.reduce((b,s)=>s.kg>b.kg?s:b);
+    return { name:names[id], kg:best.kg, date:best.date };
+  }).filter(Boolean).sort((a,b)=>b.kg-a.kg);
+  plot.innerHTML = rows.length
+    ? '<table class="hist"><thead><tr><th>Exercise</th><th>Best</th><th>Date</th></tr></thead><tbody>'
+      + rows.map(r=>'<tr><td>'+escapeHtml(r.name)+'</td><td><span class="num">'+r.kg+'</span> <span class="u">'+STATE.unit+'</span></td><td>'+fmtDate(r.date)+'</td></tr>').join('')
+      + '</tbody></table>'
+    : '<p class="emptyHist">No records yet — log a lift to start.</p>';
+  cap.textContent=''; $('#statsRow').innerHTML='';
+}
+function drawMuscles(){
+  const plot=$('#statsPlot'), cap=$('#statsCap');
+  plot.style.aspectRatio='auto';
+  const data=muscleVolumeBreakdown();
+  if(!data.length){ plot.innerHTML='<p class="emptyHist">No data yet — muscle groups come from exercises the AI has classified.</p>'; cap.textContent=''; $('#statsRow').innerHTML=''; return; }
+  const max=Math.max(...data.map(d=>d.vol),1);
+  plot.innerHTML='<div class="muscleBars">'+data.map(d=>'<div class="mbRow"><span class="mbLbl">'+escapeHtml(d.m)+'</span><div class="mbTrack"><div class="mbFill" style="width:'+Math.round(d.vol/max*100)+'%"></div></div><span class="mbVal">'+Math.round(d.vol)+'</span></div>').join('')+'</div>';
+  cap.textContent='Volume by primary muscle worked, from AI-classified exercises';
+  $('#statsRow').innerHTML='';
+}
+function drawGoals(){
+  const plot=$('#statsPlot'), cap=$('#statsCap');
+  plot.style.aspectRatio='auto';
+  const goals=STATE.liftGoals||[], names=STATE.exerciseNames||{};
+  const rows=goals.map((g,i)=>{
+    const h=(STATE.history[g.id]||[]).filter(s=>!s.off);
+    const cur=h.length?Math.max(...h.map(s=>s.kg)):0;
+    const pct=Math.max(0,Math.min(100,Math.round(cur/g.target*100)));
+    return '<div class="goalRow"><div class="goalTop"><span>'+escapeHtml(names[g.id]||g.id)+'</span><span>'+cur+' / '+g.target+' '+STATE.unit+'</span></div><div class="mbTrack"><div class="mbFill" style="width:'+pct+'%"></div></div><button class="photoX" data-i="'+i+'" aria-label="Remove goal">×</button></div>';
+  }).join('');
+  plot.innerHTML = (rows||'<p class="emptyHist">No lift goals yet.</p>') + '<button class="pbtn ghost" id="addGoalBtn" style="width:100%;margin-top:14px">+ add a lift goal</button>';
+  plot.querySelectorAll('.photoX').forEach(b=> b.onclick=()=>{ STATE.liftGoals.splice(+b.dataset.i,1); saveState(); drawGoals(); });
+  const addBtn=plot.querySelector('#addGoalBtn'); if(addBtn) addBtn.onclick=openAddGoal;
+  cap.textContent=''; $('#statsRow').innerHTML='';
+}
+function openAddGoal(){
+  const names=STATE.exerciseNames||{};
+  const ids=Object.keys(names).filter(id=>(STATE.history[id]||[]).some(s=>!s.off));
+  if(!ids.length) return;
+  const opts=ids.map(id=>'<option value="'+id+'">'+escapeHtml(names[id])+'</option>').join('');
+  openPop(popHead('Goal','Add a lift goal')
+    + '<div class="secLbl">Exercise</div>'
+    + '<select id="goalExSel" style="width:100%;background:var(--bg);border:1px solid var(--hair);border-radius:10px;color:var(--text);font:inherit;font-size:14px;padding:11px 12px">'+opts+'</select>'
+    + '<div class="secLbl">Target weight ('+STATE.unit+')</div>'
+    + '<div class="searchRow"><input id="goalTargetIn" type="number" inputmode="decimal" placeholder="e.g. 225" autocomplete="off"/></div>'
+    + '<div class="popBtns"><button class="pbtn ghost" id="goalCancel">cancel</button><button class="pbtn save" id="goalSave">Save</button></div>',
+    scrim=>{
+      scrim.querySelector('#goalCancel').onclick=closePop;
+      scrim.querySelector('#goalSave').onclick=()=>{
+        const id=scrim.querySelector('#goalExSel').value, target=parseFloat(scrim.querySelector('#goalTargetIn').value);
+        if(!id || !Number.isFinite(target) || target<=0) return;
+        STATE.liftGoals=STATE.liftGoals||[]; STATE.liftGoals.push({id, target});
+        saveState(); closePop(); drawGoals();
+      };
+    });
 }
 function aggregateVolumeByDate(){
   const map={};
@@ -1452,8 +1644,12 @@ function drawSessionsCal(){
   const set=new Set(STATE.finishedDates||[]);
   let cells='';
   for(let i=days-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=ymd(d); cells+='<span class="cd'+(set.has(k)?' on':'')+'" title="'+k+'"></span>'; }
-  plot.innerHTML='<div class="cal">'+cells+'</div>';
-  cap.innerHTML=[...set].filter(k=>daysAgo(k)<=days).length+' session(s) in the last '+days+' days <span class="mu">· current streak '+currentStreak()+'</span>';
+  const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const counts=weekdayCounts(); const maxC=Math.max(...counts,1);
+  const bars='<div class="wdBars">'+counts.map((c,i)=>'<div class="wdBar"><div class="wdTrack"><div class="wdFill" style="height:'+Math.max(3,Math.round(c/maxC*100))+'%"></div></div><span class="wdLbl">'+WD[i]+'</span></div>').join('')+'</div>';
+  plot.innerHTML='<div class="cal">'+cells+'</div>'+bars;
+  const bestDay=WD[counts.indexOf(Math.max(...counts))];
+  cap.innerHTML=[...set].filter(k=>daysAgo(k)<=days).length+' session(s) in the last '+days+' days <span class="mu">· strongest day '+bestDay+'</span>';
   $('#statsRow').innerHTML='<div class="stat"><div class="k">Streak</div><div class="v gold">'+currentStreak()+'</div></div><div class="stat"><div class="k">Total sessions</div><div class="v">'+set.size+'</div></div><div class="stat"><div class="k">Lifts tracked</div><div class="v">'+Object.keys(STATE.exerciseNames||{}).length+'</div></div>';
 }
 
@@ -1487,8 +1683,11 @@ function spawnParticles(root){
   STATE.exerciseNames = STATE.exerciseNames || {};
   STATE.shortTermGoal = STATE.shortTermGoal || '';
   STATE.photos = STATE.photos || [];
+  STATE.sessionDurations = STATE.sessionDurations || [];
+  STATE.liftGoals = STATE.liftGoals || [];
   render(); wireFresh();
-  renderGoalBubble(); renderPhotos(); wirePhotoUpload(); renderStatsPicker(); drawStatsSection();
+  renderGoalBubble(); renderPhotos(); wirePhotoUpload(); renderOverviewCards(); renderStatsPicker(); drawStatsSection();
+  const exportBtn=$('#exportCsvBtn'); if(exportBtn) exportBtn.onclick=exportCSV;
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
 })();
 </script>
