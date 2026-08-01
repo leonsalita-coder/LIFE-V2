@@ -171,6 +171,7 @@
   .pillInput::-webkit-outer-spin-button, .pillInput::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
   .pill:hover .pillInput { border-bottom-color: rgba(110,231,183,.22); }
   .pillInput:focus { color: var(--mint); border-bottom-color: var(--mint); }
+  .pillInput.w.bump { color: var(--mint); }
   .pillSpacer { flex:1; }
   .pillActions { display:inline-flex; align-items:center; gap:9px; }
   .pillHit { background:none; border:none; font-family: var(--serif); font-style:italic; font-size:14px; color: var(--mint); cursor:pointer; white-space:nowrap; padding:2px; transition: color .15s; }
@@ -730,9 +731,27 @@ function renderPillGroup(e, rx, idx){
   }
   return frag;
 }
+/* ---- progression suggestion: no banner, no extra copy — the prefilled
+   weight IS the suggestion, lightly tinted when it's a bump. Held steady
+   after any miss or a partial session; bumped a small, weight-scaled step
+   after a session where every set hit its rep target. */
+function suggestedKg(e, rx){
+  const real=e.hist.filter(s=>!s.off);
+  if(!real.length) return e.lastKg!=null ? e.lastKg : rx.kg;
+  const last=real[real.length-1];
+  const sets=last.sets||[];
+  if(!sets.length || last.kg<=0) return last.kg;
+  const anyFail=sets.some(s=>s.fail);
+  const allHit=sets.every(s=>!s.fail && (s.r||0)>=rx.reps);
+  if(anyFail || !allHit) return last.kg;
+  const bump = last.kg>=60?2.5:(last.kg>=20?1.25:0.5);
+  return r1(last.kg+bump);
+}
 function renderPill(e, rx, idx){
   const kind=classifySet(e, idx); const s=e.log[idx]; const logged=kind!=='empty';
-  const prefillKg = s?s.kg:(e.lastKg!=null?e.lastKg:rx.kg);
+  const suggestion = logged ? null : suggestedKg(e, rx);
+  const prefillKg = s?s.kg:(suggestion!=null?suggestion:rx.kg);
+  const bumped = !logged && e.lastKg!=null && suggestion!=null && suggestion>e.lastKg;
   const prefillR = s?s.reps:rx.reps;
   const pr = isPR(e, idx);
   const row=document.createElement('div'); row.className='pill '+(kind==='failed'?'failed':(kind==='done'?'done':''))+(logged?'':' tappable');
@@ -742,7 +761,7 @@ function renderPill(e, rx, idx){
   row.innerHTML =
     '<span class="pillIdx">'+(ROMAN[idx]||idx+1)+'</span>'
     + '<span class="pillValue">'
-    +   '<input class="pillInput w" type="number" inputmode="decimal" value="'+prefillKg+'" aria-label="Weight" />'
+    +   '<input class="pillInput w'+(bumped?' bump':'')+'" type="number" inputmode="decimal" value="'+prefillKg+'" aria-label="Weight" />'
     +   '<span class="pillUnit">'+STATE.unit+(e.perHand?'<span class="pillPerHand">/ea</span>':'')+'</span>'
     +   '<span class="pillTimes">×</span>'
     +   '<input class="pillInput r" type="number" inputmode="numeric" value="'+prefillR+'" aria-label="Reps" />'
