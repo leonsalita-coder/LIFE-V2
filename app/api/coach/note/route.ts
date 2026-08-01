@@ -71,13 +71,21 @@ Return ONLY a valid JSON object, nothing else, no markdown fences, no commentary
       },
       body: JSON.stringify({
         model: 'claude-sonnet-5',
-        max_tokens: 400,
+        max_tokens: 1024,
+        // Sonnet 5 thinks by default when this is omitted — set it explicitly
+        // so behavior is documented here rather than implicit. Thinking tokens
+        // count as billed output and, with display left at its default
+        // ("omitted"), come back as a separate content block with empty text
+        // — max_tokens has headroom above for that, and the text is pulled
+        // from the actual text block below rather than assumed to be first.
+        thinking: { type: 'adaptive' },
         messages: [{ role: 'user', content: prompt }],
       }),
     })
     if (!r.ok) return Response.json({ error: 'anthropic_error' })
     const j = await r.json()
-    const text: string = j?.content?.[0]?.text || ''
+    const textBlock = Array.isArray(j?.content) ? j.content.find((b: { type?: string }) => b?.type === 'text') : null
+    const text: string = textBlock?.text || ''
     const match = text.match(/\{[\s\S]*\}/)
     if (!match) return Response.json({ error: 'bad_response' })
     const parsed = JSON.parse(match[0])
