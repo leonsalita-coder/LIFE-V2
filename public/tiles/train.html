@@ -148,6 +148,7 @@
   .exNote { padding-left:29px; margin-top:9px; font-size:13px; color: var(--muted-strong); font-style:italic; display:flex; gap:7px; align-items:baseline; }
   .exNote .ndot { color: var(--mint); }
   .deloadTag { color: var(--muted-strong); border:1px solid var(--hair); border-radius:4px; padding:1px 6px; font-size:9px; letter-spacing:.12em; }
+  .groupTag { color: var(--mint); border:1px solid rgba(110,231,183,.35); border-radius:4px; padding:1px 6px; font-size:9px; letter-spacing:.1em; text-transform:uppercase; }
 
   .exActions { display:flex; align-items:center; flex-wrap:wrap; gap:7px; padding-left:29px; margin-top:14px; }
   .actionPill { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; font-size:12px; color: var(--mint); background: rgba(110,231,183,.04); border:1px solid rgba(110,231,183,.25); border-radius: var(--radius-pill); cursor:pointer; white-space:nowrap; box-shadow: 0 0 16px rgba(110,231,183,.10); transition: color .15s, border-color .15s, background .15s, box-shadow .48s var(--ease), transform .15s var(--spring); }
@@ -524,7 +525,7 @@ function buildState(){
         hist: (SEED&&SEED.hist&&SEED.hist[e.id]) ? JSON.parse(JSON.stringify(SEED.hist[e.id])) : [] };
     })};
   });
-  return { active:(SEED&&SEED.active)||'push', unit:'kg', submitted:false, days, customLib:{}, finishedDates:[], genPrefs:{ equipment:['Barbell','Dumbbells','Machines'], minutes:45 } };
+  return { active:(SEED&&SEED.active)||'push', unit:'kg', submitted:false, days, customLib:{}, finishedDates:[], genPrefs:{ equipment:['Barbell','Dumbbells','Machines'], minutes:45 }, templates:[] };
 }
 /* ---- warm-up / cooldown defaults, seeded once per fresh day ------- */
 const DEFAULT_WARMUP = {
@@ -696,7 +697,7 @@ function renderCard(e, day){
   const tier = TIER_LABEL[e.tier]||('tier '+e.tier);
   const metaBits = [tier, rx.sets+' × '+rx.reps];
   if(e.lastKg!=null) metaBits.push('last '+e.lastKg+' '+STATE.unit);
-  const meta = metaBits.map(b=>'<span>'+b+'</span>').join('<span class="metaSep">·</span>') + (e.deload?'<span class="deloadTag">deload</span>':'');
+  const meta = metaBits.map(b=>'<span>'+b+'</span>').join('<span class="metaSep">·</span>') + (e.deload?'<span class="deloadTag">deload</span>':'') + (e.group?'<span class="groupTag">superset '+e.group+'</span>':'');
   card.innerHTML =
     '<div class="exHead">'
     + '<button class="grip" aria-label="Drag to reorder" title="Drag to reorder">'+gripIcon()+'</button>'
@@ -806,8 +807,25 @@ function doLog(e, idx, kg, reps, fail){
     const beats = kg>pbBefore || (kg===pbBefore && reps>bestRepsAt(e,pbBefore));
     if(beats && !wasComplete && exComplete(e) && card){ card.classList.add('celebrate'); setTimeout(()=>card.classList.remove('celebrate'),1650); celebrate(e, kg, reps); }
   }
-  if(!fail) startRest(e);
+  if(!fail && (!e.group || isLastInGroup(e, curDay()))) startRest(e);
 }
+/* ---- supersets / circuits: exercises sharing e.group rest together - */
+function isLastInGroup(e, day){
+  if(!e.group) return true;
+  const mem=day.ex.filter(x=>x.group===e.group);
+  return mem.length ? mem[mem.length-1].id===e.id : true;
+}
+function nextGroupLetter(day){
+  const used=new Set(day.ex.map(x=>x.group).filter(Boolean));
+  for(const l of 'ABCDEFGH') if(!used.has(l)) return l;
+  return 'X';
+}
+function linkWithNext(e, day){
+  const idx=day.ex.findIndex(x=>x.id===e.id); const next=day.ex[idx+1]; if(!next) return;
+  const gid=e.group||next.group||nextGroupLetter(day);
+  e.group=gid; next.group=gid; render();
+}
+function ungroup(e){ delete e.group; render(); }
 function rollupToday(e){
   const done = e.log.filter(s=>s&&!s.fail);
   e.hist = e.hist.filter(h=>h.date!==today);
@@ -834,7 +852,7 @@ function tickRest(e){ const t=restTimers[e.id]; if(!t) return; t.handle=setInter
 function stopRest(id){ const t=restTimers[id]; if(t&&t.handle) clearInterval(t.handle); delete restTimers[id]; }
 function mountRestBar(card, e){ const slot=card.querySelector('.restSlot'); const t=restTimers[e.id]; if(!t||!slot){ if(slot)slot.innerHTML=''; return; }
   const over=t.remaining<=0;
-  slot.innerHTML='<div class="restbar'+(over?' over':'')+'"><button class="restStep" data-d="-15">−15</button><div class="restMid"><div class="restTime">'+(over?'go →':mmss(Math.max(0,t.remaining)))+'</div><div class="restLabel">'+e.name+'</div></div><button class="restStep" data-d="15">+15</button><button class="restX" aria-label="Dismiss">×</button></div>';
+  slot.innerHTML='<div class="restbar'+(over?' over':'')+'"><button class="restStep" data-d="-15">−15</button><div class="restMid"><div class="restTime">'+(over?'go →':mmss(Math.max(0,t.remaining)))+'</div><div class="restLabel">'+(e.group?('Superset '+e.group):e.name)+'</div></div><button class="restStep" data-d="15">+15</button><button class="restX" aria-label="Dismiss">×</button></div>';
   slot.querySelector('[data-d="-15"]').onclick=()=>{ t.remaining-=15; updateRest(e.id); };
   slot.querySelector('[data-d="15"]').onclick=()=>{ t.remaining+=15; updateRest(e.id); };
   slot.querySelector('.restX').onclick=()=>{ stopRest(e.id); slot.innerHTML=''; };
@@ -975,13 +993,39 @@ function openSwap(e){
     + '<button class="pbtn save" id="aiGo" style="margin-top:10px;width:100%">Look it up with AI</button>'
     + '<div id="aiStatus" style="margin-top:10px;font-size:13px;min-height:16px"></div>'
     + '<div class="secLbl">'+(adding?'Or pick from the '+day.name.toLowerCase()+' library':'Or pick a recommended swap')+'</div>'
-    + '<div class="swapList">'+rows+'</div>',
+    + '<div class="swapList">'+rows+'</div>'
+    + (adding ? (
+        '<div class="secLbl">Templates</div>'
+        + '<div class="swapList">'+((STATE.templates||[]).map(t=>'<button class="swapItem" data-tpl="'+t.id+'"><span class="nm">'+t.name+'</span><span class="mu">'+t.ex.length+' exercises</span></button>').join('') || '<p class="emptyHist">No saved templates yet.</p>')+'</div>'
+        + '<div class="searchRow" style="margin-top:10px"><input id="tplName" placeholder="Name today’s list to save it" autocomplete="off"/></div>'
+        + '<button class="pbtn ghost" id="tplSave" style="width:100%;margin-top:8px">Save current list as a template</button>'
+      ) : ''),
     scrim=>{
-      scrim.querySelectorAll('.swapItem').forEach(b=> b.onclick=()=>{
+      scrim.querySelectorAll('.swapItem[data-id]').forEach(b=> b.onclick=()=>{
         const o=opts.find(x=>x.id===b.dataset.id); if(!o) return;
         const def={ id:o.id, name:o.name, tier:o.tier, sets:(e?e.sets:3), reps:(e?e.reps:10), kg:(e?e.kg:20), perHand:!!o.perHand, rest:(e?e.rest:120), lastKg:null, pinned:false, collapsed:false, deload:false, note:'', log:Array(e?e.sets:3).fill(null), hist:[] };
         commitExercise(def, e, day, adding);
       });
+      if(adding){
+        scrim.querySelectorAll('.swapItem[data-tpl]').forEach(b=> b.onclick=()=>{
+          const t=(STATE.templates||[]).find(x=>x.id===b.dataset.tpl); if(!t) return;
+          const used=new Set(day.ex.map(x=>x.id));
+          const defs=t.ex.map(info=>{
+            const id=slugifyAvoiding(info.name, used); used.add(id);
+            const sets=info.sets||3;
+            return { id, name:info.name, tier:info.tier||2, sets, reps:info.reps||10, kg:info.kg||0, perHand:!!info.perHand, rest:info.rest||90, lastKg:null, pinned:false, collapsed:false, deload:false, note:'', log:Array(sets).fill(null), hist:[] };
+          });
+          day.ex.push(...defs); closePop(); render();
+        });
+        const tplNameIn=scrim.querySelector('#tplName'), tplSaveBtn=scrim.querySelector('#tplSave');
+        tplSaveBtn.disabled = !day.ex.length;
+        tplSaveBtn.onclick=()=>{
+          const nm=(tplNameIn.value||'').trim(); if(!nm || !day.ex.length) return;
+          STATE.templates=STATE.templates||[];
+          STATE.templates.push({ id:'t'+Date.now(), name:nm, ex: day.ex.map(x=>({name:x.name,tier:x.tier,sets:x.sets,reps:x.reps,kg:x.kg,perHand:x.perHand,rest:x.rest})) });
+          saveState(); closePop(); openSwap(null);
+        };
+      }
       const nameIn=scrim.querySelector('#aiName'), goBtn=scrim.querySelector('#aiGo'), status=scrim.querySelector('#aiStatus');
       const runClassify=async()=>{
         const nm=nameIn.value.trim(); if(!nm) return;
@@ -1100,11 +1144,14 @@ function stepRow(label, id, val){ const f=id==='tsets'?'sets':(id==='treps'?'rep
 function openMenu(e, day, btn){
   const root=$('#popRoot');
   const r=btn.getBoundingClientRect();
+  const idx=day.ex.findIndex(x=>x.id===e.id); const hasNext=idx>=0 && idx<day.ex.length-1;
   root.innerHTML='<div class="scrim" id="scrim" style="background:transparent"><div class="menuPop" id="menuPop"></div></div>';
   const scrim=$('#scrim'); const menu=$('#menuPop');
   menu.innerHTML=
     '<button data-m="deload">'+svg('<path d="M12 5v9M8 11l4 4 4-4M5 19h14"/>',' fill="none" stroke="currentColor"')+(e.deload?'Remove deload':'Deload this lift')+'</button>'
     + '<button data-m="note">'+svg('<path d="M4 5h16M4 12h16M4 19h10"/>',' fill="none" stroke="currentColor"')+(e.note?'Edit note':'Add a note')+'</button>'
+    + (e.group ? '<button data-m="ungroup">'+svg('<path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3"/>',' fill="none" stroke="currentColor"')+'Remove from superset</button>'
+               : (hasNext ? '<button data-m="link">'+svg('<path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3"/>',' fill="none" stroke="currentColor"')+'Link with next (superset)</button>' : ''))
     + '<div class="sep"></div>'
     + '<button class="danger" data-m="remove">'+svg('<path d="M5 7h14M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3"/>',' fill="none" stroke="currentColor"')+'Remove from day</button>';
   // position near the button, clamped to viewport
@@ -1116,6 +1163,8 @@ function openMenu(e, day, btn){
     const m=b.dataset.m; closePop();
     if(m==='deload'){ e.deload=!e.deload; render(); }
     else if(m==='note'){ openNote(e); }
+    else if(m==='link'){ linkWithNext(e, day); }
+    else if(m==='ungroup'){ ungroup(e); }
     else if(m==='remove'){ confirmRemove(e, day); }
   });
 }
@@ -1136,7 +1185,11 @@ function confirmRemove(e, day){
   openPop(popHead('Remove', e.name)
     + '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Your logged history is kept. This only removes '+e.name+' from your '+day.name+' day.</p>'
     + '<div class="popBtns"><button class="pbtn ghost" id="rcancel">Keep it</button><button class="pbtn danger" id="ryes">Remove</button></div>',
-    scrim=>{ scrim.querySelector('#rcancel').onclick=closePop; scrim.querySelector('#ryes').onclick=()=>{ const i=day.ex.findIndex(x=>x.id===e.id); if(i>=0) day.ex.splice(i,1); stopRest(e.id); closePop(); render(); }; });
+    scrim=>{ scrim.querySelector('#rcancel').onclick=closePop; scrim.querySelector('#ryes').onclick=()=>{
+      const i=day.ex.findIndex(x=>x.id===e.id); if(i>=0) day.ex.splice(i,1); stopRest(e.id);
+      if(e.group){ const rest=day.ex.filter(x=>x.group===e.group); if(rest.length<2) rest.forEach(x=>delete x.group); }
+      closePop(); render();
+    }; });
 }
 
 /* ---- celebrate ---------------------------------------------------- */
@@ -1178,6 +1231,7 @@ function spawnParticles(root){
   STATE.customLib = STATE.customLib || {};
   STATE.finishedDates = STATE.finishedDates || [];
   STATE.genPrefs = STATE.genPrefs || { equipment:['Barbell','Dumbbells','Machines'], minutes:45 };
+  STATE.templates = STATE.templates || [];
   ORDER.forEach(k=>{ const day=STATE.days[k]; if(day && !day.warmup) day.warmup = day.restDay?[]:seedChecklist(DEFAULT_WARMUP[k]); if(day && !day.cooldown) day.cooldown = day.restDay?[]:seedChecklist(DEFAULT_COOLDOWN[k]); });
   render(); wireFresh();
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
