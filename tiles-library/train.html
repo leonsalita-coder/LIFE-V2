@@ -501,31 +501,21 @@ const SWAPS = {
   rest:[],
 };
 
-/* Ships clean. The program (PROGRAM) fills each day with lifts ready to log;
-   there is no fake history or pre-logged sets. Real data loads via the bridge. */
-const SEED = null;
 
-/* ---- build / load state ------------------------------------------- */
-function lastRealKg(id){
-  const h = (SEED&&SEED.hist&&SEED.hist[id])||[]; const real = h.filter(s=>!s.off);
-  return real.length ? real[real.length-1].kg : null;
-}
+/* ---- build / load state ---------------------------------------------
+   Every day starts with an EMPTY exercise list. PROGRAM is kept only as
+   reference prescriptions for the "pick from library" list — nothing is
+   ever pre-filled. The board only gains exercises when you generate a
+   session, add one manually, or type a name for the AI to classify. */
 function buildState(){
   const days = {};
   ORDER.forEach(key=>{
     const p = PROGRAM[key];
     days[key] = { name:p.name, type:p.type||'', restDay:!!p.restDay, off:false,
       warmup: p.restDay?[]:seedChecklist(DEFAULT_WARMUP[key]), cooldown: p.restDay?[]:seedChecklist(DEFAULT_COOLDOWN[key]),
-      ex:(p.exercises||[]).map(e=>{
-      const seedLog = (SEED&&SEED.log&&SEED.log[e.id]) || null;
-      const lk = lastRealKg(e.id);
-      return { id:e.id, name:e.name, tier:e.tier, sets:e.sets, reps:e.reps, kg:e.kg, perHand:!!e.perHand, rest:e.rest||120,
-        lastKg: (lk==null? null : lk), pinned:false, collapsed:false, deload:false, note:'',
-        log: seedLog ? seedLog.map(s=>s?{kg:s.kg,reps:s.reps,fail:!!s.fail}:null) : Array(e.sets).fill(null),
-        hist: (SEED&&SEED.hist&&SEED.hist[e.id]) ? JSON.parse(JSON.stringify(SEED.hist[e.id])) : [] };
-    })};
+      ex: [] };
   });
-  return { active:(SEED&&SEED.active)||'push', unit:'kg', submitted:false, days, customLib:{}, finishedDates:[], genPrefs:{ equipment:['Barbell','Dumbbells','Machines'], minutes:45 }, templates:[] };
+  return { active:'push', unit:'kg', submitted:false, days, customLib:{}, finishedDates:[], genPrefs:{ equipment:['Barbell','Dumbbells','Machines'], minutes:45 }, templates:[] };
 }
 /* ---- warm-up / cooldown defaults, seeded once per fresh day ------- */
 const DEFAULT_WARMUP = {
@@ -981,9 +971,19 @@ function commitExercise(def, e, day, adding){
   else { const i=day.ex.findIndex(x=>x.id===e.id); if(i>=0) day.ex[i]=def; stopRest(e.id); }
   closePop(); render();
 }
+/** Reference picks for a day: the day's real PROGRAM prescriptions (with
+ *  known sets/reps/kg) plus the small SWAPS alternates, deduped. Nothing
+ *  here is ever auto-added — it only feeds the "pick from library" list. */
+function libraryOptsFor(dayKey){
+  const fromProgram=((PROGRAM[dayKey]&&PROGRAM[dayKey].exercises)||[]).map(e=>({ id:e.id, name:e.name, tier:e.tier, perHand:!!e.perHand, sets:e.sets, reps:e.reps, kg:e.kg, rest:e.rest }));
+  const fromSwaps=(SWAPS[dayKey]||[]).map(o=>({ id:o.id, name:o.name, tier:o.tier, perHand:!!o.perHand }));
+  const seen=new Set(); const merged=[];
+  fromProgram.concat(fromSwaps).forEach(o=>{ if(!seen.has(o.id)){ seen.add(o.id); merged.push(o); } });
+  return merged;
+}
 function openSwap(e){
   const day=curDay(); const adding=!e;
-  const opts=(SWAPS[STATE.active]||[]).filter(o=> !day.ex.some(x=>x.id===o.id));
+  const opts=libraryOptsFor(STATE.active).filter(o=> !day.ex.some(x=>x.id===o.id));
   const rows=opts.map(o=>'<button class="swapItem" data-id="'+o.id+'"><span><span class="nm">'+o.name+'</span><span class="mu">'+(TIER_LABEL[o.tier]||'')+(o.perHand?' · per hand':'')+'</span></span><span class="arr">'+svg('<path d="M5 12h14M13 6l6 6-6 6"/>',' fill="none" stroke="currentColor"')+'</span></button>').join('') || '<p class="emptyHist">No more options for this day.</p>';
   openPop(popHead(adding?'Add':'Swap', adding? day.name+' day' : e.name)
     + (adding? '<p class="formGist" style="font-size:15px;font-weight:500;color:var(--muted-strong)">Add a lift to today’s '+day.name.toLowerCase()+'. It starts fresh and you set the weight.</p>'
@@ -1003,7 +1003,8 @@ function openSwap(e){
     scrim=>{
       scrim.querySelectorAll('.swapItem[data-id]').forEach(b=> b.onclick=()=>{
         const o=opts.find(x=>x.id===b.dataset.id); if(!o) return;
-        const def={ id:o.id, name:o.name, tier:o.tier, sets:(e?e.sets:3), reps:(e?e.reps:10), kg:(e?e.kg:20), perHand:!!o.perHand, rest:(e?e.rest:120), lastKg:null, pinned:false, collapsed:false, deload:false, note:'', log:Array(e?e.sets:3).fill(null), hist:[] };
+        const sets=o.sets||(e?e.sets:3);
+        const def={ id:o.id, name:o.name, tier:o.tier, sets, reps:(o.reps||(e?e.reps:10)), kg:(o.kg!=null?o.kg:(e?e.kg:20)), perHand:!!o.perHand, rest:(o.rest||(e?e.rest:120)), lastKg:null, pinned:false, collapsed:false, deload:false, note:'', log:Array(sets).fill(null), hist:[] };
         commitExercise(def, e, day, adding);
       });
       if(adding){
