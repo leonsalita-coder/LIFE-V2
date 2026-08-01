@@ -81,6 +81,67 @@
   .tab.on{color:#04140d;background:var(--brand);border-color:var(--brand)}
   .starterTag{width:max-content;max-width:92%;margin:0 auto 20px;padding:6px 14px;border:1px solid rgba(110,231,183,.25);border-radius:999px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#84848c;text-align:center}
   .starterTag,.starterTag *{line-height:1.6}
+
+  /* ── subs, enriched: renewal countdown, alerts, a "coming up" radar,
+        a text-paste importer, and a cancel-win toast ── */
+  .subAlerts{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .subAl{display:flex;align-items:center;gap:10px;border:1px solid rgba(110,231,183,.24);background:rgba(110,231,183,.05);border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.4}
+  .subAl .tag{flex:none;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#04140d;background:var(--brand);border-radius:999px;padding:3px 8px}
+  .subAl b{color:var(--fg)}
+  .radarBox{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px}
+  .radarTop{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .radarTop b{color:var(--brand);font-family:var(--mono);letter-spacing:0;text-transform:none;font-size:12px}
+  .rBrow{display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:10px;padding:8px 0 0}
+  .rBrow+.rBrow{border-top:1px solid var(--border);padding-top:8px;margin-top:8px}
+  .rDot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.22)}
+  .rDot.soon{background:var(--brand)}
+  .rDot.imminent{background:#f5cf7a;box-shadow:0 0 8px rgba(245,207,122,.6)}
+  .rNm{font-size:13px}
+  .rWhen{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+  .rAmt{font-family:var(--mono);font-size:12px;color:var(--muted-strong)}
+  .row .subMeta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:2px}
+  .subRenew{font-family:var(--mono);font-size:9.5px;color:var(--muted)}
+  .subRenew.urgent{color:#f5cf7a}
+  .subTrial{font-family:var(--mono);font-size:9.5px;color:#f5cf7a}
+  .subEdit{grid-column:1/-1;margin-top:0;padding-top:0;border-top:none;display:none;max-height:0;overflow:hidden}
+  .row.editingSub .subEdit{display:block;max-height:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+  .subEdit .eGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .subEdit input{background:rgba(14,14,17,.7);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--fg);font:inherit;font-size:12.5px;outline:none;min-width:0;width:100%}
+  .subEdit input:focus{border-color:var(--brand)}
+  .subEdit .eLbl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:8px 0 4px}
+  .subEdit .eLbl:first-child{margin-top:0}
+  .subEdit .eSeg{display:flex;gap:5px}
+  .subEdit .eSeg button{flex:1;background:none;border:1px solid var(--border);color:var(--muted);font:inherit;font-size:11px;padding:7px;border-radius:8px;cursor:pointer}
+  .subEdit .eSeg button.on{background:var(--brand);color:#04140d;border-color:var(--brand)}
+  .subEdit .eActs{display:flex;gap:8px;margin-top:10px}
+  .subEdit .eSave{flex:1;background:var(--brand);color:#04140d;border:none;border-radius:9px;padding:9px;font-weight:700;font-size:12.5px;cursor:pointer}
+  .subEdit .eCancel{background:none;border:1px solid var(--border);color:var(--muted);border-radius:9px;padding:9px 12px;font-size:12.5px;cursor:pointer}
+  .subActs{display:flex;align-items:center;gap:2px}
+  .row .edit2{border:none;background:none;color:var(--muted);cursor:pointer;font-size:13px;opacity:.55;padding:2px 4px;transition:opacity .12s,color .12s}
+  .row .edit2:hover{opacity:1;color:var(--brand)}
+  .row .del.confirm{opacity:1;color:var(--neg);font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;border:1px solid rgba(255,139,139,.4);border-radius:999px;padding:3px 7px}
+  .pasteBtn{display:block;margin:0 auto 16px;background:transparent;border:1px dashed var(--border);border-radius:10px;color:var(--muted);font:inherit;font-size:12px;padding:9px 14px;cursor:pointer;transition:color .14s,border-color .14s}
+  .pasteBtn:hover{color:var(--brand);border-color:var(--brand)}
+  .finVeil{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .28s var(--ease)}
+  .finVeil.on{opacity:1;pointer-events:auto}
+  .finSheet{position:fixed;left:0;right:0;bottom:0;z-index:90;background:#0b0b0e;border:1px solid var(--border);border-bottom:none;border-radius:20px 20px 0 0;max-width:600px;margin:0 auto;padding:20px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(102%);transition:transform .4s var(--ease);max-height:80vh;overflow-y:auto}
+  .finSheet.on{transform:none}
+  .finSheet .grab{width:36px;height:4px;border-radius:999px;background:rgba(255,255,255,.14);margin:0 auto 16px}
+  .finSheet h3{font-family:var(--serif);font-style:italic;font-weight:400;font-size:22px;margin-bottom:4px}
+  .finSheet .sub2{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+  .pasteArea{width:100%;min-height:110px;background:rgba(14,14,17,.7);border:1px solid var(--border);border-radius:12px;padding:11px 12px;font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--fg);outline:none;resize:vertical}
+  .pasteArea:focus{border-color:var(--brand)}
+  .pasteGo{display:block;width:100%;margin-top:12px;background:var(--brand);color:#04140d;font-weight:700;font-size:14px;border-radius:12px;padding:13px;cursor:pointer;border:none}
+  .pvRow{display:flex;align-items:center;gap:9px;border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-top:8px}
+  .pvRow .nm{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pvRow .amt{font-family:var(--mono);font-size:11.5px;color:var(--muted-strong)}
+  .pvRow .rm{color:rgba(255,255,255,.3);padding:2px 5px;font-size:14px;cursor:pointer;background:none;border:none}
+  .finToast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(140%);z-index:95;background:#0b0b0e;border:1px solid rgba(110,231,183,.4);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 14px 40px -8px rgba(0,0,0,.8);transition:transform .45s var(--ease);max-width:90vw}
+  .finToast.on{transform:translateX(-50%) translateY(0)}
+  .finToast .t1{font-size:13px;font-weight:600}
+  .finToast .t1 b{color:var(--brand)}
+  .finToast .t2{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+  @media (prefers-reduced-motion: reduce){ .finVeil,.finSheet,.finToast{transition-duration:.01ms!important} }
 </style>
 </head>
 <body>
@@ -89,9 +150,24 @@
   <h1>Finance</h1>
   <div class="well" id="app"></div>
 </div>
+
+<div class="finVeil" id="finVeil"></div>
+<div class="finSheet" id="finSheet">
+  <div class="grab"></div>
+  <h3>Bring a bill in</h3>
+  <p class="sub2">Paste anything billing-shaped, one subscription per line — "Netflix $15.99/month" works. Re-paste a statement later and a price that quietly went up gets caught automatically.</p>
+  <textarea class="pasteArea" id="pasteIn" placeholder="Netflix $15.99/month&#10;Spotify Premium 11.99 monthly&#10;Adobe CC - 263.88 per year"></textarea>
+  <button class="pasteGo" id="pasteGo">Read it</button>
+  <div id="pvBox"></div>
+</div>
+<div class="finToast" id="finToast">
+  <div><div class="t1" id="finToastT1"></div><div class="t2" id="finToastT2"></div></div>
+</div>
+
 <script>
 let store={};let view='networth';
 let editingId=null;let editKind='bal';let adding=false;let addingStock=false;let addingSub=false;
+let editingSubId=null;let confirmSubId=null;let pvItems=[];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fetchingS=new Set();let finNote=false;
 function persist(){window.Vitality.save(store)}
@@ -101,7 +177,36 @@ function subs(){if(!Array.isArray(store.subs))store.subs=[];return store.subs}
 function hist(){if(!Array.isArray(store.history))store.history=[];return store.history}
 function holdValue(h){return (typeof h.shares==='number'?h.shares:0)*(typeof h.price==='number'?h.price:0)}
 function stockTotal(){return holds().reduce((s,h)=>s+holdValue(h),0)}
-function monthlyBurn(){return subs().reduce((s,x)=>s+(typeof x.amount==='number'?x.amount:0),0)}
+/* period-aware monthly cost — old subs (no .period) fall through to the
+   original flat-amount behavior, so nothing already saved changes value. */
+function monthlyEquiv(s){const a=typeof s.amount==='number'?s.amount:0;return s.period==='yearly'?a/12:s.period==='weekly'?a*52/12:a;}
+function monthlyBurn(){return subs().reduce((s,x)=>s+monthlyEquiv(x),0)}
+
+/* ── renewal date math, ported from the radar's engine ── */
+const FIN_DAY=86400000;
+const finStartOfToday=()=>{const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate())};
+function finParseLocalDate(iso){
+  if(!iso||!/^\d{4}-\d{2}-\d{2}$/.test(iso))return null;
+  const [y,m,d]=iso.split('-').map(Number);const dt=new Date(y,m-1,d);return isNaN(dt)?null:dt;
+}
+function finNextRenewal(iso,period){
+  const d=finParseLocalDate(iso);if(!d)return null;
+  const today=finStartOfToday();let safety=0;
+  while(d<today&&safety++<600){
+    if(period==='weekly')d.setDate(d.getDate()+7);
+    else if(period==='yearly')d.setFullYear(d.getFullYear()+1);
+    else d.setMonth(d.getMonth()+1);
+  }
+  return d;
+}
+const finDaysTo=date=>Math.round((new Date(date.getFullYear(),date.getMonth(),date.getDate())-finStartOfToday())/FIN_DAY);
+function finWhenLabel(n){return n===0?'today':n===1?'tomorrow':'in '+n+'d'}
+function finDateLabel(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+function normalizeUrl(raw){
+  const t=(raw||'').trim();if(!t)return null;
+  const w=/^https?:\/\//i.test(t)?t:'https://'+t;
+  try{const u=new URL(w);return (u.protocol==='http:'||u.protocol==='https:')?u.toString():null}catch(e){return null}
+}
 function netWorth(){let s=0;for(const a of accts())s+=(typeof a.balance==='number'?a.balance:0);for(const h of holds())s+=holdValue(h);return s;}
 function fmtMoney(n){if(n==null)return '—';const sign=n<0?'−':'';const a=Math.abs(n);
   return sign+'$'+(a>=1e6?(a/1e6).toFixed(2)+'M':a>=1e4?Math.round(a).toLocaleString():a.toLocaleString(undefined,{maximumFractionDigits:0}));}
@@ -174,17 +279,115 @@ function listStocks(){
   if(finNote)h+='<div class="keyNote">stocks need a free <b>Finnhub key</b> in .env.local — your mentor sets it up. Until then they hold at $0.</div>';
   return h;
 }
+function subEditPanel(sb){
+  return '<div class="eLbl">Billed</div><div class="eSeg" data-eperiod="'+sb.id+'">'
+    +['monthly','yearly','weekly'].map(p=>'<button data-p="'+p+'" class="'+((sb.period||'monthly')===p?'on':'')+'">'+p+'</button>').join('')
+    +'</div>'
+    +'<div class="eGrid" style="margin-top:8px">'
+    +'<div><div class="eLbl">Next renewal</div><input type="date" data-erenewal="'+sb.id+'" value="'+(sb.renewal||'')+'"></div>'
+    +'<div><div class="eLbl">Trial ends</div><input type="date" data-etrial="'+sb.id+'" value="'+(sb.trialEnds||'')+'"></div>'
+    +'</div>'
+    +'<div class="eLbl">Manage / billing link</div><input data-emanage="'+sb.id+'" value="'+esc(sb.manageUrl||'')+'" placeholder="netflix.com/account">'
+    +'<div class="eActs"><button class="eSave" data-esave="'+sb.id+'">Save</button><button class="eCancel" data-ecancel>Close</button></div>';
+}
 function listSubs(){
   let h='';
   for(const sb of subs()){
-    h+='<div class="row"><div class="nmwrap"><span class="nm">'+esc(sb.name)+'</span><div class="hsub">subscription</div></div>'
-      +valCell(sb.id,'sub',(typeof sb.amount==='number'?sb.amount:''),false)+(editingId===sb.id?'':fmtMoney(typeof sb.amount==='number'?sb.amount:0)+'/mo</span>')
-      +'<button class="del" data-del="'+sb.id+'" title="Remove">&times;</button></div>';
+    const nx=sb.renewal?finNextRenewal(sb.renewal,sb.period||'monthly'):null;
+    const rn=nx?finDaysTo(nx):null;
+    const urgent=rn!=null&&rn<=5;
+    const trialN=sb.trialEnds?finDaysTo(finParseLocalDate(sb.trialEnds)):null;
+    h+='<div class="row'+(editingSubId===sb.id?' editingSub':'')+'"><div class="nmwrap"><span class="nm">'+esc(sb.name)+'</span>'
+      +'<div class="subMeta"><span class="hsub">'+(sb.period||'monthly')+'</span>'
+      +(nx?'<span class="subRenew'+(urgent?' urgent':'')+'">↻ '+(rn<0?'past due':finWhenLabel(rn))+'</span>':'')
+      +(trialN!=null&&trialN>=0?'<span class="subTrial">trial ends '+finWhenLabel(trialN)+'</span>':'')
+      +'</div></div>'
+      +'<span class="bal" data-subedit="'+sb.id+'" title="Edit details">'+fmtMoney(monthlyEquiv(sb))+'/mo</span>'
+      +'<div class="subActs"><button class="edit2" data-subedit="'+sb.id+'" title="Edit details">&#9998;</button>'
+      +(confirmSubId===sb.id?'<button class="del confirm" data-subdel="'+sb.id+'">sure?</button>':'<button class="del" data-subask="'+sb.id+'" title="Remove">&times;</button>')
+      +'</div>'
+      +'<div class="subEdit">'+subEditPanel(sb)+'</div>'
+      +'</div>';
   }
   if(addingSub)h+='<div class="addRow"><input id="subNmIn" placeholder="subscription — e.g. Netflix" autocomplete="off"/><input id="subAmtIn" type="text" inputmode="decimal" placeholder="$ / month" autocomplete="off"/><button data-addsubgo>Add</button></div>';
   else h+='<button class="addBtn" data-addsub>+ Add subscription</button>';
   return h;
 }
+function subAlerts(){
+  const als=[];
+  for(const sb of subs()){
+    const t=sb.trialEnds?finParseLocalDate(sb.trialEnds):null;
+    if(t){const n=finDaysTo(t);if(n>=0&&n<=14)als.push({kind:'trial',sb,n});}
+    if(sb.prevAmount!=null&&sb.amount>sb.prevAmount+.005&&(!sb.priceChangedAt||Date.now()-sb.priceChangedAt<=60*FIN_DAY))
+      als.push({kind:'hike',sb});
+  }
+  if(!als.length)return '';
+  als.sort((a,b)=>a.kind!==b.kind?(a.kind==='trial'?-1:1):(a.n||0)-(b.n||0));
+  return '<div class="subAlerts">'+als.map(a=>a.kind==='trial'
+    ?'<div class="subAl"><span class="tag">trial</span><span>'+esc(a.sb.name)+' free trial ends <b>'+finWhenLabel(a.n)+'</b> — cancel before it charges</span></div>'
+    :'<div class="subAl"><span class="tag">price up</span><span>'+esc(a.sb.name)+' went up '+fmtMoney(a.sb.prevAmount)+' → <b>'+fmtMoney(a.sb.amount)+'</b></span></div>'
+  ).join('')+'</div>';
+}
+function radarBox(){
+  const bills=subs().map(sb=>{ if(!sb.renewal)return null; const nx=finNextRenewal(sb.renewal,sb.period||'monthly'); if(!nx)return null; return {sb,nx,n:finDaysTo(nx)}; })
+    .filter(b=>b&&b.n>=0&&b.n<=30).sort((a,b)=>a.n-b.n);
+  if(!bills.length)return '';
+  const tot=bills.reduce((t,b)=>t+(typeof b.sb.amount==='number'?b.sb.amount:0),0);
+  return '<div class="radarBox"><div class="radarTop"><span>coming up</span><b>'+fmtMoney(tot)+' next 30 days</b></div>'
+    +bills.map(b=>{const tone=b.n<=3?'imminent':b.n<=7?'soon':'';
+      return '<div class="rBrow"><span class="rDot '+tone+'"></span><div><div class="rNm">'+esc(b.sb.name)+'</div><div class="rWhen">'+finWhenLabel(b.n)+' · '+finDateLabel(b.nx)+'</div></div><span class="rAmt">'+fmtMoney(b.sb.amount)+'</span></div>';
+    }).join('')+'</div>';
+}
+let subToastTimer;
+function subCancelWin(sb){
+  const m=monthlyEquiv(sb);
+  const t1=document.getElementById('finToastT1'),t2=document.getElementById('finToastT2'),toast=document.getElementById('finToast');
+  if(!t1||!toast)return;
+  t1.innerHTML='Canceled '+esc(sb.name)+' · <b>+'+fmtMoney(m)+'/mo</b> back';
+  t2.textContent='that is '+fmtMoney(m*12)+' a year';
+  toast.classList.add('on');
+  clearTimeout(subToastTimer);
+  subToastTimer=setTimeout(()=>toast.classList.remove('on'),3600);
+}
+
+/* ── paste importer: deterministic text parsing only. No OCR/image scan here
+   — that needs an external CDN library, and a sealed tile can't fetch. ── */
+function openPasteSheet(){
+  document.getElementById('finVeil').classList.add('on');
+  document.getElementById('finSheet').classList.add('on');
+  document.getElementById('pasteIn').value=''; document.getElementById('pvBox').innerHTML=''; pvItems=[];
+  setTimeout(()=>{const p=document.getElementById('pasteIn'); if(p)p.focus();},300);
+}
+function closePasteSheet(){
+  document.getElementById('finVeil').classList.remove('on');
+  document.getElementById('finSheet').classList.remove('on');
+}
+const FIN_PERIOD_WORDS=[[/per\s*year|yearly|annual|\/\s*y(ea)?r|a\s*year/i,'yearly'],[/per\s*week|weekly|\/\s*w(ee)?k|a\s*week/i,'weekly'],[/per\s*month|monthly|\/\s*mo(nth)?|a\s*month/i,'monthly']];
+function parseBillText(text){
+  const out=[];
+  for(const lineRaw of text.split(/\n+/)){
+    const line=lineRaw.trim(); if(!line)continue;
+    const m=line.match(/(?:[$€£]|CHF|USD|EUR|GBP)?\s*(\d{1,3}(?:[ ,]\d{3})*(?:[.,]\d{1,2})?)(?!\d)/);
+    if(!m)continue;
+    const amount=parseFloat(m[1].replace(/[ ,](?=\d{3}\b)/g,'').replace(',','.'));
+    if(!isFinite(amount)||amount<=0)continue;
+    let period='monthly';
+    for(const pair of FIN_PERIOD_WORDS){ if(pair[0].test(line)){ period=pair[1]; break; } }
+    let name=line.slice(0,m.index).replace(/[-–—·:|]+\s*$/,'').trim();
+    if(!name)name=line.slice(m.index+m[0].length).replace(/^[-–—·:|]+\s*/,'').replace(/(per|a)\s*(year|month|week)|yearly|monthly|weekly|annual/ig,'').trim();
+    if(!name)continue;
+    if(name.length>42)name=name.slice(0,42).trim();
+    out.push({name,amount,period});
+  }
+  return out;
+}
+function paintPv(){
+  const box=document.getElementById('pvBox');
+  if(!pvItems.length){ box.innerHTML='<p style="font-family:var(--serif);font-style:italic;color:var(--muted);font-size:13.5px;margin-top:10px">Could not read a price on any line. Try one per line, like: Netflix $15.99/month</p>'; return; }
+  box.innerHTML=pvItems.map((p,i)=>'<div class="pvRow"><span class="nm">'+esc(p.name)+'</span><span class="amt">'+fmtMoney(p.amount)+' / '+p.period+'</span><button class="rm" data-pvrm="'+i+'">&times;</button></div>').join('')
+    +'<button class="pasteGo" data-pvaddall style="margin-top:12px">Add '+pvItems.length+' subscription'+(pvItems.length>1?'s':'')+'</button>';
+}
+function runPasteReview(){ pvItems=parseBillText(document.getElementById('pasteIn').value); paintPv(); }
 
 function tabBar(){
   return '<div class="tabBar">'+[['networth','Net worth'],['stocks','Stocks'],['subs','Subs']]
@@ -206,7 +409,7 @@ function render(){
   }else{
     html='<div class="kick">✦ monthly burn</div><div class="worth">'+(subs().length?fmtMoney(monthlyBurn())+'<span class="u">/mo</span>':'—')+'</div>'
       +(subs().length?'<div class="delta">'+subs().length+' renewal'+(subs().length===1?'':'s')+' a month</div>':'')
-      +'<div class="list" style="margin-top:24px">'+listSubs()+'</div>';
+      +'<div class="list" style="margin-top:24px">'+subAlerts()+radarBox()+'<button class="pasteBtn" data-pasteopen>+ paste a bill instead</button>'+listSubs()+'</div>';
   }
   html+=tabBar();
   document.getElementById('app').innerHTML=html;
@@ -225,7 +428,11 @@ function commit(){
     const hd=holds().find(x=>x.id===editingId);editingId=null;
     if(hd&&raw!==''&&isFinite(n)&&n>=0){hd.shares=n;snapshot();persist();render();refreshStock(hd);return;}
   }else if(editKind==='sub'){
-    const sb=subs().find(x=>x.id===editingId);if(sb&&raw!==''&&isFinite(n)&&n>=0){sb.amount=n;persist();}
+    const sb=subs().find(x=>x.id===editingId);
+    if(sb&&raw!==''&&isFinite(n)&&n>=0){
+      if(n>sb.amount+.005){ sb.prevAmount=sb.amount; sb.priceChangedAt=Date.now(); }
+      sb.amount=n;persist();
+    }
   }else{
     const ac=accts().find(x=>x.id===editingId);if(ac&&raw!==''&&isFinite(n)){ac.balance=n;snapshot();persist();}
   }
@@ -249,13 +456,14 @@ function addSub(){
   const n=document.getElementById('subNmIn'),amt=document.getElementById('subAmtIn');
   const name=(n?n.value:'').trim();if(!name){if(n)n.focus();return;}
   const raw=String(amt?amt.value:'').replace(/[$,\s]/g,'');const amount=Number(raw);
-  subs().push({id:'s'+Math.random().toString(36).slice(2,8),name,amount:(raw!==''&&isFinite(amount))?amount:0});
+  subs().push({id:'s'+Math.random().toString(36).slice(2,8),name,amount:(raw!==''&&isFinite(amount))?amount:0,
+    period:'monthly',renewal:null,trialEnds:null,manageUrl:null,prevAmount:null,priceChangedAt:null});
   addingSub=false;persist();render();
 }
 
 document.addEventListener('click',e=>{
   const tab=e.target.closest('[data-view]');
-  if(tab){view=tab.getAttribute('data-view');editingId=null;adding=addingStock=addingSub=false;render();return}
+  if(tab){view=tab.getAttribute('data-view');editingId=null;adding=addingStock=addingSub=false;editingSubId=null;confirmSubId=null;render();return}
   const b=e.target.closest('[data-bal]');
   if(b){editingId=b.getAttribute('data-bal');editKind='bal';adding=addingStock=addingSub=false;render();return}
   const sh=e.target.closest('[data-sh]');
@@ -270,6 +478,50 @@ document.addEventListener('click',e=>{
   if(e.target.closest('[data-add]')){addAccount();return}
   if(e.target.closest('[data-addstockgo]')){addStock();return}
   if(e.target.closest('[data-addsubgo]')){addSub();return}
+
+  const se=e.target.closest('[data-subedit]');
+  if(se){const id=se.getAttribute('data-subedit');editingSubId=(editingSubId===id)?null:id;confirmSubId=null;render();return}
+  if(e.target.closest('[data-ecancel]')){editingSubId=null;render();return}
+  const eseg=e.target.closest('[data-eperiod] button');
+  if(eseg){const id=eseg.closest('[data-eperiod]').getAttribute('data-eperiod');const sb=subs().find(x=>x.id===id);if(sb){sb.period=eseg.getAttribute('data-p');persist();render();}return}
+  const esave=e.target.closest('[data-esave]');
+  if(esave){
+    const id=esave.getAttribute('data-esave'),sb=subs().find(x=>x.id===id),panel=esave.closest('.subEdit');
+    if(sb&&panel){
+      const ren=panel.querySelector('[data-erenewal]'),tr=panel.querySelector('[data-etrial]'),mg=panel.querySelector('[data-emanage]');
+      sb.renewal=ren&&ren.value?ren.value:null;
+      sb.trialEnds=tr&&tr.value?tr.value:null;
+      sb.manageUrl=mg&&mg.value.trim()?normalizeUrl(mg.value.trim()):null;
+      persist();
+    }
+    editingSubId=null;render();return
+  }
+  const suask=e.target.closest('[data-subask]');
+  if(suask){const id=suask.getAttribute('data-subask');confirmSubId=id;render();setTimeout(()=>{if(confirmSubId===id){confirmSubId=null;render();}},3200);return}
+  const sudel=e.target.closest('[data-subdel]');
+  if(sudel){
+    const id=sudel.getAttribute('data-subdel'),i=subs().findIndex(x=>x.id===id);
+    if(i>-1){const sb=subs()[i];subs().splice(i,1);confirmSubId=null;persist();render();subCancelWin(sb);}
+    return
+  }
+  if(e.target.closest('[data-pasteopen]')){openPasteSheet();return}
+  if(e.target.closest('#finVeil')){closePasteSheet();return}
+  if(e.target.closest('#pasteGo')){runPasteReview();return}
+  const pvrm=e.target.closest('[data-pvrm]');
+  if(pvrm){pvItems.splice(+pvrm.getAttribute('data-pvrm'),1);paintPv();return}
+  if(e.target.closest('[data-pvaddall]')){
+    for(const p of pvItems){
+      const existing=subs().find(x=>x.name.trim().toLowerCase()===p.name.trim().toLowerCase());
+      if(existing){
+        if(p.amount>existing.amount+.005){existing.prevAmount=existing.amount;existing.priceChangedAt=Date.now();}
+        existing.amount=p.amount;existing.period=p.period;
+      }else{
+        subs().push({id:'s'+Math.random().toString(36).slice(2,8),name:p.name,amount:p.amount,period:p.period,renewal:null,trialEnds:null,manageUrl:null,prevAmount:null,priceChangedAt:null});
+      }
+    }
+    persist();closePasteSheet();render();
+    return
+  }
 });
 
 /* standalone preview: opened as a raw file with no dashboard bridge? back it

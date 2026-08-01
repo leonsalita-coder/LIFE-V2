@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Fuel</title>
 <!--
-  FUEL — almost nothing, on purpose. One number (water today), one button.
-  The week draws itself underneath. Everything else this tile could become
-  (macros, meals, caffeine) gets built WITH the mentor, on top of this.
-  Store: { water: { 'YYYY-MM-DD': count } } — /sweep and save_data can file
-  straight into it.
+  FUEL — water (Episode 1: one number, one button, the week draws itself) plus
+  a supplement stack (Episode 2: search 100+ real supplements, log what you
+  took, schedule what time of day). Two tabs, one tile, same sealed rules: no
+  network, saves through window.Vitality.
+  Store: { water: {'YYYY-MM-DD': count}, stack: { items:[{u,id|custom,name,dose,window}],
+  takenByDay:{'YYYY-MM-DD':[u,...]}, offBlocks:[...] } }
 -->
 <style>
   :root{
@@ -18,7 +19,7 @@
     --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
     --serif:Georgia,'Times New Roman',serif;
     --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;
-    --ease:cubic-bezier(.16,1,.3,1);
+    --ease:cubic-bezier(.16,1,.3,1);--spring:cubic-bezier(.34,1.56,.64,1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -38,11 +39,11 @@
   h1{font-size:24px;font-weight:600;letter-spacing:-.01em;text-align:left}
   .sub{color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:6px 0 0;text-align:left}
 
-  .well{margin-top:44px}
-  .kick{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--brand)}
+  .well{margin-top:30px}
+  .kick{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--brand);text-align:center}
   .count{font-family:var(--serif);font-style:italic;font-size:clamp(72px,18vw,110px);line-height:1;color:#fff;margin-top:10px;
-    text-shadow:0 0 44px rgba(110,231,183,.25)}
-  .of{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+    text-shadow:0 0 44px rgba(110,231,183,.25);text-align:center}
+  .of{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:8px;text-align:center}
   .btnRow{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:30px}
   .minus{width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:20px;cursor:pointer;transition:all .15s}
   .minus:hover{color:#fff;border-color:var(--muted)}
@@ -57,25 +58,147 @@
   .bar.zero{background:var(--border)}
   .dLab{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
   .dLab.today{color:var(--brand)}
-  .foot{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:34px}
+  .foot{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:34px;text-align:center}
   .starterTag{width:max-content;max-width:92%;margin:0 auto 20px;padding:6px 14px;border:1px solid rgba(110,231,183,.25);border-radius:999px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#84848c;text-align:center}
   .starterTag,.starterTag *{line-height:1.6}
+
+  /* ── tab bar, matched to Finance's for a consistent house pattern ── */
+  .tabBar{display:flex;gap:6px;margin-top:34px;padding-top:18px;border-top:1px solid var(--border)}
+  .tab{flex:1;padding:12px 8px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s}
+  .tab:hover{color:#fff;border-color:var(--muted)}
+  .tab.on{color:#04140d;background:var(--brand);border-color:var(--brand)}
+
+  /* ── the stack: a time-blocked supplement checklist ── */
+  .stackHead{text-align:left}
+  .tally{border:1px solid var(--border);background:rgba(14,14,17,.5);border-radius:14px;padding:16px 18px}
+  .tally .top{display:flex;justify-content:space-between;align-items:baseline}
+  .tally .n{font-family:var(--serif);font-style:italic;font-size:28px}
+  .tally .n b{font-style:normal;color:var(--brand)}
+  .tally .lb{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  .meter{margin-top:12px;height:5px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+  .meter .fill{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#3ddc97,var(--brand));transition:width .6s var(--ease)}
+
+  .stackSearch{position:relative;margin:18px 0 4px;z-index:10}
+  .sBox{display:flex;align-items:center;gap:10px;border:1px solid var(--border);background:rgba(255,255,255,.02);border-radius:12px;padding:12px 14px;transition:border-color .2s}
+  .sBox:focus-within{border-color:var(--brand)}
+  .sBox svg{width:14px;height:14px;color:var(--muted);flex:none}
+  .sBox input{flex:1;background:none;border:0;outline:0;font:inherit;font-size:14px;color:var(--fg)}
+  .sBox input::placeholder{color:rgba(255,255,255,.3)}
+  .sDrops{position:absolute;top:calc(100% + 8px);left:0;right:0;z-index:20;background:#0b0b0e;border:1px solid var(--border);border-radius:12px;overflow:hidden auto;max-height:280px;box-shadow:0 20px 48px -10px rgba(0,0,0,.8);display:none;text-align:left}
+  .sDrops.on{display:block}
+  .sRow{display:block;width:100%;text-align:left;padding:11px 13px;border-bottom:1px solid var(--border);background:none;border-left:none;border-right:none;border-top:none;color:var(--fg);cursor:pointer;font:inherit}
+  .sRow:last-child{border-bottom:none}
+  .sRow:hover{background:rgba(110,231,183,.06)}
+  .sRow .nm{font-size:13.5px}
+  .sRow .nt{font-size:11.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sRow .ds{font-family:var(--mono);font-size:10px;color:var(--brand);float:right}
+  .sRow.custom .nm i{font-style:italic;color:var(--brand)}
+
+  .pairChip{display:none;margin:10px 2px 0;align-items:center;gap:8px;font-size:12.5px;color:var(--muted-strong);text-align:left}
+  .pairChip.on{display:flex}
+  .pairChip .k{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand)}
+  .pairChip button{background:none;border:none;font-style:italic;color:var(--brand);border-bottom:1px solid rgba(110,231,183,.4);cursor:pointer;font:inherit;padding:0}
+
+  .blk{text-align:left;display:flex;gap:14px;padding:15px 2px;border-top:1px solid var(--border)}
+  .blk:first-child{border-top:none}
+  .blk .side{flex:0 0 82px}
+  .blk .side .t{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-strong)}
+  .blk .side .w{font-family:var(--mono);font-size:8.5px;color:var(--muted);margin-top:3px}
+  .blk .items{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+  .blk .empty{font-family:var(--serif);font-style:italic;color:rgba(255,255,255,.32);font-size:13px}
+
+  .sRowItem{display:flex;align-items:center;gap:11px;border:1px solid var(--border);background:rgba(14,14,17,.5);border-radius:13px;padding:11px 12px;transition:border-color .25s,opacity .25s}
+  .sRowItem:hover{border-color:rgba(110,231,183,.28)}
+  .sChk{flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(255,255,255,.2);display:grid;place-items:center;color:transparent;cursor:pointer;background:none;transition:all .2s}
+  .sChk svg{width:12px;height:12px}
+  .sBd{flex:1;min-width:0;text-align:left}
+  .sNm{font-size:14px;font-weight:500}
+  .sMeta{display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap}
+  .sDose{font-family:var(--mono);font-size:10.5px;color:var(--muted-strong)}
+  .sTag{font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;border:1px solid;border-radius:999px;padding:2px 7px}
+  .sTag.gold{color:#f1cf7a;border-color:rgba(241,207,122,.35)}
+  .sTag.violet{color:#c4b5fd;border-color:rgba(196,181,253,.35)}
+  .sTag.sky{color:#9ad7f5;border-color:rgba(154,215,245,.32)}
+  .sInfo{flex:none;color:rgba(255,255,255,.3);padding:5px;background:none;border:none;cursor:pointer;transition:color .2s}
+  .sInfo:hover{color:var(--brand)}
+  .sInfo svg{width:14px;height:14px;display:block}
+  .sX{flex:none;color:rgba(255,255,255,.2);padding:5px 3px;font-size:15px;line-height:1;background:none;border:none;cursor:pointer;transition:color .2s}
+  .sX:hover{color:#ff8b8b}
+  .sRowItem.done{opacity:.5}
+  .sRowItem.done .sChk{background:var(--brand);border-color:var(--brand);color:#04140d}
+  .sRowItem.done .sNm{text-decoration:line-through;text-decoration-color:rgba(110,231,183,.5);color:var(--muted-strong)}
+  @keyframes sPop{0%{transform:scale(.6)}55%{transform:scale(1.16)}100%{transform:scale(1)}}
+  .sChk.pop{animation:sPop .4s var(--ease)}
+
+  .stackFirst{margin-top:22px;text-align:center}
+  .stackFirst p{font-family:var(--serif);font-style:italic;color:var(--muted-strong);font-size:15.5px}
+  .stackBtn{display:block;width:100%;margin-top:20px;background:transparent;border:1px dashed var(--border);border-radius:10px;color:var(--muted);font:inherit;font-size:12.5px;padding:11px 14px;cursor:pointer;transition:color .14s,border-color .14s}
+  .stackBtn:hover{color:var(--brand);border-color:var(--brand)}
+
+  /* when-to-take sheet */
+  .fuelVeil{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .28s var(--ease)}
+  .fuelVeil.on{opacity:1;pointer-events:auto}
+  .fuelSheet{position:fixed;left:0;right:0;bottom:0;z-index:90;background:#0b0b0e;border:1px solid var(--border);border-bottom:none;border-radius:20px 20px 0 0;max-width:600px;margin:0 auto;padding:20px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(102%);transition:transform .4s var(--ease);max-height:82vh;overflow-y:auto;text-align:left}
+  .fuelSheet.on{transform:none}
+  .fuelSheet .grab{width:36px;height:4px;border-radius:999px;background:rgba(255,255,255,.14);margin:0 auto 16px}
+  .fuelSheet h3{font-family:var(--serif);font-style:italic;font-weight:400;font-size:22px;margin-bottom:4px}
+  .fuelSheet .sub2{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+  .fuelSheet .k{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);margin:16px 0 9px}
+  .tblocks{display:flex;gap:8px;flex-wrap:wrap}
+  .tb{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;border:1px solid rgba(110,231,183,.4);color:var(--brand);border-radius:999px;padding:9px 15px;cursor:pointer;transition:all .2s;background:none}
+  .tb.off{border-color:var(--border);color:rgba(255,255,255,.3)}
+  .tbHint{font-size:12px;color:var(--muted);margin-top:8px}
+  .editItem{border:1px solid var(--border);background:rgba(255,255,255,.02);border-radius:13px;padding:12px 13px;margin-bottom:9px}
+  .eiHead{font-size:14px;font-weight:500}
+  .eiRow{display:flex;align-items:center;gap:8px;margin-top:9px;flex-wrap:wrap}
+  .eiLbl{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);flex:none}
+  .slotPick{font-family:var(--mono);font-size:10px;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:6px 10px;background:none;cursor:pointer;transition:all .2s}
+  .slotPick.on{background:var(--brand);border-color:var(--brand);color:#04140d}
+  .eiDoseIn{font-family:var(--mono);font-size:11.5px;color:var(--brand);background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:6px 10px;outline:none;width:120px}
+  .fuelDone{display:block;width:100%;margin-top:16px;background:var(--brand);color:#04140d;font-weight:700;font-size:15px;border-radius:12px;padding:13px;cursor:pointer;border:none}
+
+  /* cozy reader */
+  .reader{margin-top:14px;display:none;border:1px solid rgba(110,231,183,.3);background:rgba(255,255,255,.02);border-radius:14px;padding:14px}
+  .reader.on{display:block}
+  .reader .rt{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--brand)}
+  .rbar{margin-top:10px;height:4px;border-radius:999px;background:var(--border);overflow:hidden}
+  .rbar span{display:block;height:100%;width:40%;border-radius:999px;background:linear-gradient(90deg,transparent,var(--brand),transparent);animation:rSlide 1.4s var(--ease) infinite}
+  @keyframes rSlide{from{transform:translateX(-120%)}to{transform:translateX(320%)}}
+  .rdots{display:flex;gap:6px;margin-top:10px}
+  .rdots i{width:6px;height:6px;border-radius:50%;background:var(--brand);opacity:.4;animation:rDot 1.2s ease-in-out infinite}
+  .rdots i:nth-child(2){animation-delay:.2s}
+  .rdots i:nth-child(3){animation-delay:.4s}
+  @keyframes rDot{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+  @media (prefers-reduced-motion: reduce){ .fuelVeil,.fuelSheet,.rbar span,.rdots i{transition-duration:.01ms!important;animation:none!important} }
 </style>
 </head>
 <body>
 <div class="shell">
 <div class="starterTag">✦ starter — the value is what you build · the videos show how</div>
   <h1>Fuel</h1>
-  <p class="sub">water today · that's it — build the rest with your mentor</p>
   <div class="well" id="app"></div>
 </div>
+
+<div class="fuelVeil" id="fuelVeil"></div>
+<div class="fuelSheet" id="fuelSheet">
+  <div class="grab"></div>
+  <div id="fuelSheetBody"></div>
+</div>
+
 <script>
 const GOAL=8;
 let store={};
+let view='water';
 function key(d){const x=d||new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
 function persist(){window.Vitality.save(store)}
 function today(){if(!store.water||typeof store.water!=='object')store.water={};return store.water}
-function render(){
+
+function tabBar(){
+  return '<div class="tabBar">'+[['water','Water'],['stack','Stack']]
+    .map(t=>'<button class="tab'+(view===t[0]?' on':'')+'" data-view="'+t[0]+'">'+t[1]+'</button>').join('')+'</div>';
+}
+
+function renderWater(){
   const w=today(),n=w[key()]||0;
   let bars='';
   for(let i=6;i>=0;i--){
@@ -84,20 +207,280 @@ function render(){
     const lab=i===0?'today':['SU','MO','TU','WE','TH','FR','SA'][d.getDay()];
     bars+='<div class="day"><div class="bar'+(c?'':' zero')+'" style="height:'+h+'px" title="'+c+'"></div><span class="dLab'+(i===0?' today':'')+'">'+lab+'</span></div>';
   }
-  document.getElementById('app').innerHTML=
-    '<div class="kick">✦ water</div>'
+  return '<div class="kick">✦ water</div>'
     +'<div class="count">'+n+'</div>'
     +'<div class="of">of '+GOAL+' today</div>'
     +'<div class="btnRow"><button class="minus" data-d="-1" aria-label="Remove one">−</button><button class="glass" data-d="1">+ Log a glass</button></div>'
     +'<div class="week">'+bars+'</div>'
     +'<p class="foot">feeds your peak score · the mentor notices the pattern</p>';
 }
+
+/* ============================================================
+   THE STACK — search-and-log 100+ real supplements, time-blocked.
+   Lives inside the same store as water, under its own key.
+   ============================================================ */
+function stackState(){
+  if(!store.stack||typeof store.stack!=='object') store.stack={items:[],takenByDay:{},offBlocks:[]};
+  if(!Array.isArray(store.stack.items)) store.stack.items=[];
+  if(!store.stack.takenByDay||typeof store.stack.takenByDay!=='object') store.stack.takenByDay={};
+  if(!Array.isArray(store.stack.offBlocks)) store.stack.offBlocks=[];
+  return store.stack;
+}
+function stackItems(){ return stackState().items; }
+function takenToday(){ const S=stackState(),k=key(); if(!Array.isArray(S.takenByDay[k])) S.takenByDay[k]=[]; return S.takenByDay[k]; }
+function escStk(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4.5 12.5l5 5 10-11"/></svg>';
+const ICON_INFO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.2v.3"/></svg>';
+const ICON_SEARCH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>';
+
+const stkWindows=[{"key":"morning","title":"Morning","time":"7-10 AM"},{"key":"lunch","title":"Midday","time":"12-2 PM"},{"key":"evening","title":"Evening","time":"6-9 PM"},{"key":"bed","title":"Before bed","time":"10 PM"},{"key":"anytime","title":"Anytime","time":"No fixed window"}];
+const stkPairs={ 'caffeine':'l-theanine', 'l-theanine':'caffeine', 'vit-d3':'vit-k2', 'vit-k2':'vit-d3', 'omega-3':'vit-d3', 'mag-glycinate':'vit-d3' };
+/* the real supplement reference set — dose, timing, and what it does, for
+   every entry. This is genuine reference data, not generated per-lookup. */
+const stkDB=[{"id":"creatine","name":"Creatine monohydrate","dose":"5 g","window":"anytime","note":"Daily. Consistency matters more than timing.","helps":"Increases strength, power, and short-term work capacity. Mild cognitive benefit.","bestTime":"Any time of day, every day. Skip the loading phase — it isn't necessary.","aliases":["creatine"]},{"id":"beta-alanine","name":"Beta-alanine","dose":"2-5 g","window":"morning","note":"Split doses if the tingles bother you.","helps":"Buffers muscle acidity. Improves endurance on sets in the 1-4 min range.","bestTime":"Daily. Effect is from saturation, not timing of the dose itself.","aliases":["beta alanine"]},{"id":"l-citrulline","name":"L-citrulline","dose":"6-8 g","window":"morning","note":"Empty stomach for absorption.","helps":"Boosts nitric oxide — better pumps and endurance.","bestTime":"30-45 min before training.","aliases":["citrulline","citrulline malate"]},{"id":"whey","name":"Whey protein","dose":"25-40 g","window":"anytime","note":"Use to hit daily protein target.","helps":"Fast-digesting protein for muscle repair + daily protein hitting.","bestTime":"Post-workout or any meal where you're short on protein.","aliases":["whey","protein powder"]},{"id":"casein","name":"Casein protein","dose":"25-40 g","window":"evening","note":"Slow-release. Good before bed.","helps":"Slow-digesting protein. Sustained amino release overnight.","bestTime":"30-60 min before bed.","aliases":["casein"]},{"id":"l-carnitine","name":"L-carnitine","dose":"1-2 g","window":"morning","note":"Take with carbs for uptake.","helps":"Helps shuttle fat into mitochondria. Modest endurance + recovery effect.","bestTime":"With a carb-containing meal, ideally pre-workout.","aliases":["carnitine"]},{"id":"alcar","name":"Acetyl-L-carnitine","dose":"500 mg - 2 g","window":"morning","note":"Crosses blood-brain barrier. Cognitive variant.","helps":"Cognitive + mood support; may sharpen focus.","bestTime":"AM, on an empty stomach if you can tolerate it.","aliases":["alcar","acetyl carnitine"]},{"id":"vit-d3","name":"Vitamin D3","dose":"2,000-5,000 IU","window":"lunch","note":"Fat-soluble. Pair with your biggest meal.","helps":"Immune, bone, and mood support. Most people are deficient.","bestTime":"Daily, with whatever meal has the most fat.","aliases":["vit d","vitamin d","d3","cholecalciferol"]},{"id":"vit-k2","name":"Vitamin K2 (MK-7)","dose":"100-200 mcg","window":"lunch","note":"Pair with D3 for calcium routing.","helps":"Directs calcium to bones, away from arteries. Synergistic with D3.","bestTime":"Same meal as your D3.","aliases":["vit k","vitamin k","k2","mk7"]},{"id":"vit-c","name":"Vitamin C","dose":"500-1,000 mg","window":"morning","note":"Water-soluble. Split doses if above 500 mg.","helps":"Antioxidant + collagen synthesis cofactor. Mild immune support.","bestTime":"AM, with food. Split larger doses across the day.","aliases":["vit c","ascorbic acid"]},{"id":"b12","name":"Vitamin B12","dose":"500-1,000 mcg","window":"morning","note":"Methylcobalamin form is best absorbed.","helps":"Energy, nerve function, red blood cell production.","bestTime":"AM. Can be stimulating for some.","aliases":["b12","methylcobalamin"]},{"id":"b-complex","name":"B-complex","dose":"1 cap","window":"morning","note":"All B vitamins together. Energy support.","helps":"Broad energy + nervous system cofactors. Useful if diet is thin.","bestTime":"AM with food. Can be stimulating.","aliases":["b complex","b vitamins"]},{"id":"multivitamin","name":"Multivitamin","dose":"1 serving","window":"lunch","note":"Take with food for absorption.","helps":"Backstop for the micronutrients your diet misses.","bestTime":"With the biggest meal of the day.","aliases":["multi","multivitamin"]},{"id":"mag-glycinate","name":"Magnesium glycinate","dose":"200-400 mg","window":"evening","note":"Sleep helper. 30-60 min before bed.","helps":"Relaxes muscles + nervous system. Improves sleep quality.","bestTime":"30-60 min before bed.","aliases":["magnesium","mag glycinate","bisglycinate"]},{"id":"mag-threonate","name":"Magnesium L-threonate","dose":"144 mg elemental","window":"evening","note":"Crosses the blood-brain barrier.","helps":"Cognitive variant of magnesium. Sleep + memory support.","bestTime":"60-90 min before bed.","aliases":["magtein","threonate"]},{"id":"zinc","name":"Zinc","dose":"15-30 mg","window":"evening","note":"Don't pair with calcium or iron.","helps":"Immune + hormonal support. Don't megadose long-term.","bestTime":"With dinner, away from calcium/iron.","aliases":["zinc"]},{"id":"iron","name":"Iron","dose":"18-65 mg","window":"morning","note":"Only supplement if labs confirm deficiency.","helps":"Treats iron-deficiency anemia. Only supplement if labs confirm low.","bestTime":"AM on empty stomach with a vit C source (orange juice).","aliases":["iron"]},{"id":"omega-3","name":"Omega-3 (Fish oil)","dose":"2-3 g EPA + DHA","window":"lunch","note":"Take with the fattiest meal of the day.","helps":"Anti-inflammatory, brain + cardiovascular support.","bestTime":"With the meal that has the most fat.","aliases":["omega 3","omega3","fish oil","epa","dha"]},{"id":"l-theanine","name":"L-theanine","dose":"100-200 mg","window":"morning","note":"Stack with caffeine 2:1 for cleaner focus.","helps":"Calm, focused alertness. Takes the edge off caffeine.","bestTime":"With your morning coffee.","aliases":["theanine"]},{"id":"rhodiola","name":"Rhodiola rosea","dose":"200-400 mg","window":"morning","note":"Adaptogen. Stress + energy.","helps":"Reduces stress-related fatigue. Mild stimulant feel.","bestTime":"AM on empty stomach.","aliases":["rhodiola"]},{"id":"lions-mane","name":"Lion's mane","dose":"500-1,000 mg","window":"morning","note":"Daily for cognitive support.","helps":"Supports nerve growth factor. Long-term cognitive benefit.","bestTime":"AM with breakfast.","aliases":["lions mane","hericium"]},{"id":"alpha-gpc","name":"Alpha-GPC","dose":"300-600 mg","window":"morning","note":"Choline source. Focus.","helps":"Boosts acetylcholine. Sharper focus and learning.","bestTime":"30 min before deep work or training.","aliases":["alpha gpc"]},{"id":"nac","name":"NAC","dose":"600-1,800 mg","window":"morning","note":"Glutathione precursor. Split doses.","helps":"Antioxidant + liver support. Useful for heavy training loads.","bestTime":"AM on empty stomach.","aliases":["nac","n-acetyl cysteine"]},{"id":"melatonin","name":"Melatonin","dose":"0.3-3 mg","window":"evening","note":"Lowest effective dose. More isn't better.","helps":"Shifts circadian rhythm. Useful for jet lag or chronotype shifts.","bestTime":"30-60 min before target bedtime.","aliases":["melatonin"]},{"id":"glycine","name":"Glycine","dose":"3 g","window":"evening","note":"Sleep onset. Drops body temp slightly.","helps":"Lowers core body temperature — faster sleep onset.","bestTime":"Right before bed.","aliases":["glycine"]},{"id":"ashwagandha","name":"Ashwagandha","dose":"300-600 mg","window":"evening","note":"KSM-66 is the most-studied form.","helps":"Lowers cortisol + stress. Modest sleep + recovery benefit.","bestTime":"With dinner. Calming effect.","aliases":["ashwagandha","ksm-66"]},{"id":"tryptophan","name":"L-tryptophan","dose":"500 mg - 1 g","window":"evening","note":"Serotonin precursor.","helps":"Supports serotonin → melatonin pathway for sleep onset.","bestTime":"60 min before bed, away from protein meals.","aliases":["tryptophan"]},{"id":"apigenin","name":"Apigenin","dose":"50 mg","window":"evening","note":"Chamomile-derived calming compound.","helps":"Mild GABA-ergic relaxation. Pairs with magnesium.","bestTime":"30 min before bed.","aliases":["apigenin"]},{"id":"caffeine","name":"Caffeine","dose":"100-200 mg","window":"morning","note":"Stack with L-theanine for cleaner focus.","helps":"Wakefulness + endurance. Half-life is ~5 h, so careful past noon.","bestTime":"90 min after waking. Lets cortisol peak first.","aliases":["caffeine"]},{"id":"probiotics","name":"Probiotics","dose":"10-50 billion CFU","window":"morning","note":"Empty stomach or with light meal.","helps":"Gut flora support. Quality + strain matter more than CFU count.","bestTime":"AM on empty stomach.","aliases":["probiotic"]},{"id":"curcumin","name":"Curcumin","dose":"500-1,000 mg","window":"lunch","note":"With black pepper + fat for absorption.","helps":"Anti-inflammatory. Joint + recovery support.","bestTime":"With a fatty meal.","aliases":["curcumin","turmeric"]},{"id":"coq10","name":"CoQ10 / Ubiquinol","dose":"100-200 mg","window":"lunch","note":"Fat-soluble. With biggest meal.","helps":"Mitochondrial support. Worth it if you're on a statin.","bestTime":"With the fattiest meal of the day.","aliases":["coq10","ubiquinol"]},{"id":"berberine","name":"Berberine","dose":"500 mg","window":"lunch","note":"Take just before carb-heavy meals.","helps":"Improves glucose handling. Comparable to metformin in some studies.","bestTime":"15 min before meals. Split across the day.","aliases":["berberine"]},{"id":"collagen","name":"Collagen peptides","dose":"10-20 g","window":"anytime","note":"With vitamin C for synthesis.","helps":"Connective tissue + skin support. Most useful 30-60 min pre-load.","bestTime":"Anytime. Many take it pre-workout for joints.","aliases":["collagen"]},{"id":"tongkat","name":"Tongkat ali","dose":"200-400 mg","window":"morning","note":"Cycle 8 weeks on, 2-4 off.","helps":"May support endogenous testosterone. Mild energy + libido lift.","bestTime":"AM on empty stomach.","aliases":["tongkat","longjack"]},{"id":"fadogia","name":"Fadogia agrestis","dose":"600 mg","window":"morning","note":"Cycle 8 weeks on / off.","helps":"Often stacked with tongkat for hormonal support.","bestTime":"AM, alongside tongkat if stacking.","aliases":["fadogia"]},{"id":"reishi","name":"Reishi","dose":"1-2 g","window":"evening","note":"Calming adaptogen.","helps":"Immune + sleep support. Subtle calming effect.","bestTime":"With dinner or before bed.","aliases":["reishi","ganoderma"]},{"id":"cordyceps","name":"Cordyceps","dose":"1-3 g","window":"morning","note":"Energy + endurance support.","helps":"Modest endurance + oxygen utilization boost.","bestTime":"AM, pre-workout if training in the morning.","aliases":["cordyceps"]},{"id":"taurine","name":"Taurine","dose":"1-3 g","window":"anytime","note":"Take with or without food. Often stacked pre-workout.","helps":"Supports endurance, hydration, and exercise output.","bestTime":"30-60 min before training.","aliases":["taurine"]},{"id":"betaine-tmg","name":"Betaine (TMG)","dose":"2.5 g","window":"anytime","note":"Split with meals. Supports methylation and power output.","helps":"May improve strength, power, and homocysteine balance.","bestTime":"With breakfast or pre-workout.","aliases":["betaine","tmg","trimethylglycine"]},{"id":"hmb","name":"HMB","dose":"3 g","window":"anytime","note":"Split into 1 g doses with meals. Best in a calorie deficit.","helps":"Helps preserve muscle during dieting or intense training.","bestTime":"With meals across the day.","aliases":["hmb"]},{"id":"eaa","name":"Essential amino acids (EAA)","dose":"10-15 g","window":"anytime","note":"Sip around training. Useful when protein intake is low.","helps":"Provides the full set of building blocks for muscle protein synthesis.","bestTime":"During or right after a workout.","aliases":["eaa","essential amino acids","amino acids"]},{"id":"electrolytes","name":"Electrolytes","dose":"1 serving","window":"anytime","note":"Use on hot days, long sessions, or low-carb diets.","helps":"Replaces sodium, potassium, and magnesium lost in sweat.","bestTime":"Before or during exercise.","aliases":["electrolytes","lmnt","salts","hydration"]},{"id":"sodium-bicarbonate","name":"Sodium bicarbonate","dose":"0.2-0.3 g/kg","window":"anytime","note":"Take 60-90 min pre-workout. Can cause GI upset; start low.","helps":"Buffers acid buildup to extend high-intensity performance.","bestTime":"60-90 min before training.","aliases":["sodium bicarbonate","baking soda","bicarb"]},{"id":"beetroot","name":"Beetroot extract","dose":"300-600 mg nitrate","window":"anytime","note":"Take 2-3 hours pre-exercise for nitric oxide effect.","helps":"Boosts blood flow and endurance via dietary nitrate.","bestTime":"2-3 hours before training.","aliases":["beetroot","beet","nitrate","beet juice"]},{"id":"egg-protein","name":"Egg white protein","dose":"25-30 g","window":"anytime","note":"Dairy-free protein option.","helps":"Delivers high-quality complete protein without lactose.","bestTime":"Post-workout or between meals.","aliases":["egg protein","egg white protein"]},{"id":"pea-protein","name":"Pea protein","dose":"25-30 g","window":"anytime","note":"Plant-based and allergen-friendly.","helps":"Provides a vegan protein source to hit daily targets.","bestTime":"Post-workout or between meals.","aliases":["pea protein","vegan protein","plant protein"]},{"id":"folate","name":"Folate","dose":"400 mcg","window":"anytime","note":"Use methylfolate form. Important before and during pregnancy.","helps":"Supports red blood cell formation and DNA synthesis.","bestTime":"With breakfast.","aliases":["folate","folic acid","methylfolate","vitamin b9"]},{"id":"vit-b6","name":"Vitamin B6","dose":"1.3-2 mg","window":"anytime","note":"Use P-5-P form. Avoid chronic high doses.","helps":"Supports energy metabolism and neurotransmitter production.","bestTime":"With breakfast.","aliases":["vitamin b6","b6","pyridoxine","p5p"]},{"id":"calcium","name":"Calcium","dose":"500-600 mg","window":"anytime","note":"Split doses; take with food.","helps":"Supports bone density and muscle function.","bestTime":"With meals, away from iron.","aliases":["calcium","calcium citrate"]},{"id":"krill-oil","name":"Krill oil","dose":"1-3 g","window":"anytime","note":"Take with food.","helps":"Delivers EPA and DHA in a well-absorbed, phospholipid-bound form.","bestTime":"With a meal containing fat.","aliases":["krill oil","krill"]},{"id":"valerian","name":"Valerian root","dose":"300-600 mg","window":"evening","note":"Can take a couple weeks for full effect.","helps":"Supports falling asleep and easing nighttime anxiety.","bestTime":"30-60 min before bed.","aliases":["valerian","valerian root"]},{"id":"tart-cherry","name":"Tart cherry","dose":"480 mg extract","window":"evening","note":"Natural melatonin source.","helps":"Aids sleep quality and post-exercise muscle recovery.","bestTime":"In the evening.","aliases":["tart cherry","cherry"]},{"id":"l-tyrosine","name":"L-Tyrosine","dose":"500-2000 mg","window":"morning","note":"Take on an empty stomach.","helps":"Supports focus and dopamine under stressful conditions.","bestTime":"Morning, away from protein.","aliases":["tyrosine","l-tyrosine"]},{"id":"bacopa","name":"Bacopa monnieri","dose":"300 mg","window":"anytime","note":"Effects build over 8-12 weeks.","helps":"Supports memory and learning over consistent use.","bestTime":"With a meal.","aliases":["bacopa","brahmi"]},{"id":"citicoline","name":"Citicoline (CDP-choline)","dose":"250-500 mg","window":"morning","note":"Stacks with caffeine for focus.","helps":"Supports focus, attention, and brain cell membranes.","bestTime":"Morning with breakfast.","aliases":["citicoline","cdp-choline","cognizin"]},{"id":"ginkgo","name":"Ginkgo biloba","dose":"120-240 mg","window":"anytime","note":"Avoid with blood thinners.","helps":"May support circulation and mental sharpness.","bestTime":"With a meal.","aliases":["ginkgo","ginkgo biloba"]},{"id":"psyllium","name":"Psyllium husk","dose":"5-10 g","window":"anytime","note":"Drink with plenty of water.","helps":"Adds soluble fiber for regularity and cholesterol.","bestTime":"With a large glass of water.","aliases":["psyllium","fiber"]},{"id":"glucosamine","name":"Glucosamine","dose":"1500 mg","window":"anytime","note":"Effects build over weeks.","helps":"May ease joint discomfort and support cartilage.","bestTime":"With meals.","aliases":["glucosamine"]},{"id":"chondroitin","name":"Chondroitin","dose":"800-1200 mg","window":"anytime","note":"Often paired with glucosamine.","helps":"Supports cartilage cushioning and joint comfort.","bestTime":"With meals.","aliases":["chondroitin"]},{"id":"msm","name":"MSM","dose":"1-3 g","window":"anytime","note":"Pairs with glucosamine for joints.","helps":"May reduce joint pain and exercise-related soreness.","bestTime":"With meals.","aliases":["msm"]},{"id":"ubiquinol","name":"Ubiquinol","dose":"100-200 mg","window":"anytime","note":"Reduced form of CoQ10.","helps":"Supports heart energy and acts as an antioxidant.","bestTime":"With a meal containing fat.","aliases":["ubiquinol","reduced coq10"]},{"id":"garlic","name":"Aged garlic extract","dose":"600-1200 mg","window":"anytime","note":"Take with food.","helps":"May support healthy blood pressure and cholesterol.","bestTime":"With meals.","aliases":["garlic","kyolic"]},{"id":"alpha-lipoic-acid","name":"Alpha-lipoic acid","dose":"300-600 mg","window":"anytime","note":"Take on an empty stomach.","helps":"An antioxidant that supports blood sugar and nerves.","bestTime":"Before a meal.","aliases":["alpha lipoic acid","lipoic acid"]},{"id":"quercetin","name":"Quercetin","dose":"500-1000 mg","window":"anytime","note":"Pair with vitamin C for absorption.","helps":"An antioxidant that supports immune and allergy response.","bestTime":"With meals.","aliases":["quercetin"]},{"id":"nmn","name":"NMN","dose":"250-500 mg","window":"morning","note":"NAD+ precursor. Evidence still emerging.","helps":"May support cellular energy and healthy aging.","bestTime":"Morning, empty stomach.","aliases":["nmn"]},{"id":"resveratrol","name":"Resveratrol","dose":"150-500 mg","window":"anytime","note":"Take with fat for absorption.","helps":"An antioxidant studied for heart and longevity support.","bestTime":"With a meal containing fat.","aliases":["resveratrol"]},{"id":"astaxanthin","name":"Astaxanthin","dose":"4-12 mg","window":"anytime","note":"Fat-soluble.","helps":"A potent antioxidant for skin, eyes, and recovery.","bestTime":"With a meal containing fat.","aliases":["astaxanthin"]},{"id":"maca","name":"Maca root","dose":"1.5-3 g","window":"anytime","note":"Effects build over weeks.","helps":"May support energy, libido, and mood.","bestTime":"With breakfast.","aliases":["maca"]},{"id":"holy-basil","name":"Holy basil (Tulsi)","dose":"300-600 mg","window":"anytime","note":"Adaptogen; calming over time.","helps":"Helps the body adapt to stress and supports calm.","bestTime":"With meals or evening.","aliases":["holy basil","tulsi"]},{"id":"eleuthero","name":"Eleuthero","dose":"300-1200 mg","window":"morning","note":"Siberian ginseng adaptogen.","helps":"May support stamina and resilience to fatigue.","bestTime":"Morning with food.","aliases":["eleuthero","siberian ginseng"]},{"id":"shilajit","name":"Shilajit","dose":"250-500 mg","window":"anytime","note":"Use purified, lab-tested product.","helps":"May support energy, testosterone, and mineral status.","bestTime":"With a meal.","aliases":["shilajit"]},{"id":"greens-powder","name":"Greens powder","dose":"1 scoop","window":"anytime","note":"A convenience supplement, not a produce replacement.","helps":"Adds a blend of vegetable and antioxidant nutrients.","bestTime":"Morning in water.","aliases":["greens","greens powder","ag1"]},{"id":"dim","name":"DIM","dose":"100-200 mg","window":"anytime","note":"Take with food.","helps":"May help balance estrogen metabolism.","bestTime":"With a meal.","aliases":["dim"]},{"id":"saw-palmetto","name":"Saw palmetto","dose":"320 mg","window":"anytime","note":"Take with food.","helps":"May support prostate health and urinary flow.","bestTime":"With a meal.","aliases":["saw palmetto"]},{"id":"fenugreek","name":"Fenugreek","dose":"500-600 mg","window":"anytime","note":"May add a maple-like body odor.","helps":"May support libido and healthy testosterone.","bestTime":"With a meal.","aliases":["fenugreek"]},{"id":"myo-inositol","name":"Myo-inositol","dose":"2-4 g","window":"anytime","note":"Often used with D-chiro for cycle support.","helps":"Supports insulin sensitivity and ovulatory health.","bestTime":"Split morning and evening.","aliases":["myo-inositol","inositol"]},{"id":"dhea","name":"DHEA","dose":"25-50 mg","window":"morning","note":"A hormone precursor — use only with medical guidance.","helps":"May support hormone levels that decline with age.","bestTime":"Morning with food.","aliases":["dhea"]},{"id":"sam-e","name":"SAM-e","dose":"400-800 mg","window":"morning","note":"Avoid with SSRIs; can be activating.","helps":"May support mood and joint comfort.","bestTime":"Morning before food.","aliases":["sam-e","same"]},{"id":"saffron","name":"Saffron extract","dose":"28-30 mg","window":"anytime","note":"Builds over weeks.","helps":"May support mood and emotional balance.","bestTime":"With a meal.","aliases":["saffron"]},{"id":"ginger","name":"Ginger extract","dose":"500-1000 mg","window":"anytime","note":"Helpful for nausea and digestion.","helps":"Eases nausea and supports digestion and recovery.","bestTime":"With meals.","aliases":["ginger"]},{"id":"green-tea-egcg","name":"Green tea extract (EGCG)","dose":"300-500 mg","window":"morning","note":"Contains some caffeine.","helps":"An antioxidant that may modestly support fat metabolism.","bestTime":"Morning with food.","aliases":["green tea","egcg"]}];
+
+function stkTagsFor(s){
+  const t=[]; const txt=((s.note||'')+' '+(s.bestTime||'')).toLowerCase();
+  if(stkPairs[s.id]==='caffeine'||s.id==='l-theanine') t.push(['violet','Pairs with caffeine']);
+  if(txt.indexOf('consisten')>-1) t.push(['gold','Be consistent']);
+  if(s.window==='bed') t.push(['violet','Before bed']);
+  if(txt.indexOf('with food')>-1||txt.indexOf('with a meal')>-1||txt.indexOf('with meals')>-1||txt.indexOf('with dinner')>-1) t.push(['sky','With food']);
+  if(txt.indexOf('empty stomach')>-1) t.push(['sky','Empty stomach']);
+  return t.slice(0,2);
+}
+function stkById(id){ for(let i=0;i<stkDB.length;i++) if(stkDB[i].id===id) return stkDB[i]; return null; }
+function stkItemName(it){ return it.custom?it.name:(stkById(it.id)||{}).name||it.name; }
+function stkEffWindow(w){ return stackState().offBlocks.indexOf(w)>-1?'anytime':w; }
+let stkUidN=0; function newStkUid(){ return 'u'+Date.now().toString(36)+(stkUidN++); }
+function stkInStack(id){ return stackItems().some(it=>it.id===id); }
+
+function renderStackView(){
+  const items=stackItems(), tk=takenToday();
+  const total=items.length; let done=0;
+  let railHtml='';
+  stkWindows.forEach(w=>{
+    if(stackState().offBlocks.indexOf(w.key)>-1 && w.key!=='anytime') return;
+    const wItems=items.filter(it=>stkEffWindow(it.window)===w.key);
+    let list='<div class="items">';
+    if(!wItems.length) list+='<div class="empty">Nothing yet</div>';
+    wItems.forEach(it=>{
+      const s=it.custom?it:(stkById(it.id)||it);
+      const isDone=tk.indexOf(it.u)>-1; if(isDone)done++;
+      const tags=it.custom?[]:stkTagsFor(s);
+      list+='<div class="sRowItem'+(isDone?' done':'')+'" data-u="'+it.u+'">'
+        +'<button class="sChk" data-take="'+it.u+'" aria-label="take">'+ICON_CHECK+'</button>'
+        +'<div class="sBd"><div class="sNm">'+escStk(stkItemName(it))+'</div><div class="sMeta"><span class="sDose">'+escStk(it.dose||s.dose||'')+'</span>'
+        +tags.map(t=>'<span class="sTag '+t[0]+'">'+escStk(t[1])+'</span>').join('')
+        +'</div></div>'
+        +(it.custom?'':'<button class="sInfo" data-info="'+it.u+'" aria-label="what is this">'+ICON_INFO+'</button>')
+        +'<button class="sX" data-rm="'+it.u+'" aria-label="remove">&times;</button></div>';
+    });
+    list+='</div>';
+    railHtml+='<div class="blk"><div class="side"><div class="t">'+w.title+'</div><div class="w">'+w.time+'</div></div>'+list+'</div>';
+  });
+  return '<div class="stackHead">'
+    +'<div class="tally"><div class="top"><span class="n"><b>'+done+'</b> of '+total+'</span><span class="lb">taken today</span></div>'
+    +'<div class="meter"><div class="fill" style="width:'+(total?Math.round(done/total*100):0)+'%"></div></div></div>'
+    +'<div class="stackSearch"><div class="sBox">'+ICON_SEARCH+'<input id="stkQ" placeholder="Search 100+ supplements to add" autocomplete="off"></div><div class="sDrops" id="stkDrops"></div></div>'
+    +'<div class="pairChip" id="stkPair"></div>'
+    +(total?'':'<div class="stackFirst"><p>Your stack starts here — search above to add your first one.</p></div>')
+    +railHtml
+    +'<button class="stackBtn" data-timing>When to take them</button>'
+    +'</div>';
+}
+
+function stkSearchDb(raw){
+  const v=raw.trim().toLowerCase(); if(!v) return [];
+  const starts=[], contains=[];
+  stkDB.forEach(s=>{
+    const n=s.name.toLowerCase();
+    const alias=(s.aliases||[]).map(a=>a.toLowerCase());
+    if(n.indexOf(v)===0 || alias.some(a=>a.indexOf(v)===0)) starts.push(s);
+    else if(n.indexOf(v)>-1 || alias.some(a=>a.indexOf(v)>-1)) contains.push(s);
+  });
+  starts.sort((a,b)=>a.name.localeCompare(b.name));
+  return starts.concat(contains).slice(0,8);
+}
+function stkPaintDrops(q){
+  const drops=document.getElementById('stkDrops'); if(!drops) return;
+  const v=(q||'').trim();
+  if(!v){ drops.classList.remove('on'); drops.innerHTML=''; return; }
+  const hits=stkSearchDb(v);
+  let html=hits.map(s=>'<button class="sRow" data-add="'+s.id+'"><span class="ds">'+escStk(s.dose)+'</span><span class="nm">'+escStk(s.name)+'</span><div class="nt">'+escStk(s.helps||s.note||'')+'</div></button>').join('');
+  html+='<button class="sRow custom" data-addcustom="'+escStk(v)+'"><span class="nm">Add <i>"'+escStk(v)+'"</i></span><div class="nt">custom supplement · anytime</div></button>';
+  drops.innerHTML=html; drops.classList.add('on');
+}
+function stkSuggestFor(id){
+  const mate=stkPairs[id]; const el=document.getElementById('stkPair'); if(!el) return;
+  if(!mate||stkInStack(mate)||!stkById(mate)){ el.classList.remove('on'); return; }
+  const s=stkById(mate);
+  el.innerHTML='<span class="k">Pairs well</span><span>'+escStk(stkById(id).name)+' goes with</span><button data-pairadd="'+mate+'">'+escStk(s.name)+' · add it</button>';
+  el.classList.add('on');
+  setTimeout(()=>{ el.classList.remove('on'); },9000);
+}
+
+/* ---- the fuel sheet: one bottom sheet, two contents (timing / supplement
+   info) — swapped by writing fresh markup into it, same pattern Train uses
+   for its popups, so nothing here reaches for a native alert(). ---- */
+function openFuelSheet(html){
+  document.getElementById('fuelSheetBody').innerHTML=html;
+  document.getElementById('fuelVeil').classList.add('on');
+  document.getElementById('fuelSheet').classList.add('on');
+}
+function closeFuelSheet(){
+  document.getElementById('fuelVeil').classList.remove('on');
+  document.getElementById('fuelSheet').classList.remove('on');
+  clearTimeout(window.__stkReaderT); clearInterval(window.__stkReaderI);
+}
+function openTimingSheet(){
+  openFuelSheet(
+    '<h3>When to take them</h3>'
+    +'<p class="sub2">Turn off a time block you don\'t use — anything in it moves to Anytime.</p>'
+    +'<p class="k">Time blocks</p>'
+    +'<div class="tblocks" id="tblocks"></div>'
+    +'<p class="tbHint">Tap a block to turn it off.</p>'
+    +'<p class="k">Your stack</p>'
+    +'<div class="reader on" id="reader"><p class="rt" id="readerLine">Reading your stack for the best timing</p><div class="rbar"><span></span></div><div class="rdots"><i></i><i></i><i></i></div></div>'
+    +'<div id="editList"></div>'
+    +'<button class="fuelDone" id="fuelDone">Done</button>'
+  );
+  paintBlocks();
+  runStackReader();
+}
+function paintBlocks(){
+  const wrap=document.getElementById('tblocks'); if(!wrap) return;
+  wrap.innerHTML=stkWindows.filter(w=>w.key!=='anytime').map(w=>{
+    const off=stackState().offBlocks.indexOf(w.key)>-1;
+    return '<button class="tb'+(off?' off':'')+'" data-toggleblock="'+w.key+'">'+escStk(w.title)+'</button>';
+  }).join('');
+}
+const STK_READER_LINES=['Reading your stack for the best timing','Finding what pairs well','Lining up your day'];
+function runStackReader(){
+  const reader=document.getElementById('reader');
+  const editList=document.getElementById('editList');
+  reader.classList.add('on'); editList.innerHTML='';
+  clearTimeout(window.__stkReaderT); clearInterval(window.__stkReaderI);
+  let li=0; document.getElementById('readerLine').textContent=STK_READER_LINES[0];
+  window.__stkReaderI=setInterval(()=>{ li=(li+1)%STK_READER_LINES.length; document.getElementById('readerLine').textContent=STK_READER_LINES[li]; },700);
+  window.__stkReaderT=setTimeout(()=>{
+    clearInterval(window.__stkReaderI);
+    reader.classList.remove('on');
+    buildEditList();
+  }, (window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)?50:1500);
+}
+function buildEditList(){
+  const box=document.getElementById('editList'); const items=stackItems();
+  if(!items.length){ box.innerHTML='<p style="font-family:var(--serif);font-style:italic;color:var(--muted);font-size:13.5px">Add supplements on the stack first, then schedule them here.</p>'; return; }
+  box.innerHTML=items.map((it,idx)=>{
+    const s=it.custom?it:(stkById(it.id)||it);
+    const pills=stkWindows.map(w=>'<button class="slotPick'+(stkEffWindow(it.window)===w.key?' on':'')+'" data-ei="'+idx+'" data-w="'+w.key+'">'+escStk(w.title)+'</button>').join('');
+    return '<div class="editItem"><div class="eiHead">'+escStk(stkItemName(it))+'</div>'
+      +'<div class="eiRow"><span class="eiLbl">Dose</span><input class="eiDoseIn" data-eidose="'+idx+'" value="'+escStk(it.dose||s.dose||'')+'" placeholder="e.g. 200 mg"></div>'
+      +'<div class="eiRow"><span class="eiLbl">Time</span>'+pills+'</div></div>';
+  }).join('');
+}
+
+/* ============================================================
+   BOOT / RENDER / EVENTS
+   ============================================================ */
+function render(){
+  const html=view==='water'?renderWater():renderStackView();
+  document.getElementById('app').innerHTML=html+tabBar();
+}
+
 document.addEventListener('click',e=>{
-  const b=e.target.closest('[data-d]');if(!b)return;
-  const w=today(),k=key();
-  w[k]=Math.max(0,(w[k]||0)+parseInt(b.getAttribute('data-d'),10));
-  persist();render();
+  const tabb=e.target.closest('[data-view]');
+  if(tabb){ view=tabb.getAttribute('data-view'); render(); return; }
+
+  const wb=e.target.closest('[data-d]');
+  if(wb){
+    const w=today(),k=key();
+    w[k]=Math.max(0,(w[k]||0)+parseInt(wb.getAttribute('data-d'),10));
+    persist(); render(); return;
+  }
+
+  const take=e.target.closest('[data-take]');
+  if(take){
+    const u=take.getAttribute('data-take'), tk=takenToday();
+    const i=tk.indexOf(u);
+    if(i>-1){ tk.splice(i,1); persist(); render(); }
+    else{
+      tk.push(u); persist();
+      take.classList.add('pop');
+      setTimeout(render,340);
+    }
+    return;
+  }
+  const rm=e.target.closest('[data-rm]');
+  if(rm){
+    const u=rm.getAttribute('data-rm');
+    stackState().items=stackItems().filter(it=>it.u!==u);
+    stackState().takenByDay[key()]=takenToday().filter(x=>x!==u);
+    persist(); render(); return;
+  }
+  const info=e.target.closest('[data-info]');
+  if(info){
+    const u=info.getAttribute('data-info'), it=stackItems().find(x=>x.u===u);
+    if(it&&!it.custom) openSuppInfo(stkById(it.id));
+    return;
+  }
+  const add=e.target.closest('[data-add]');
+  if(add){
+    const id=add.getAttribute('data-add'), s=stkById(id);
+    if(s){ stackItems().push({u:newStkUid(),id:s.id,window:s.window,dose:s.dose||''}); persist();
+      document.getElementById('stkQ').value=''; document.getElementById('stkDrops').classList.remove('on');
+      render(); stkSuggestFor(id);
+    }
+    return;
+  }
+  const addc=e.target.closest('[data-addcustom]');
+  if(addc){
+    const nm=addc.getAttribute('data-addcustom');
+    stackItems().push({u:newStkUid(),custom:true,name:nm,dose:'',window:'anytime'}); persist();
+    document.getElementById('stkQ').value=''; document.getElementById('stkDrops').classList.remove('on');
+    render(); return;
+  }
+  const pairadd=e.target.closest('[data-pairadd]');
+  if(pairadd){
+    const mate=pairadd.getAttribute('data-pairadd'), s=stkById(mate);
+    if(s){ stackItems().push({u:newStkUid(),id:mate,window:s.window,dose:s.dose||''}); persist(); }
+    document.getElementById('stkPair').classList.remove('on'); render(); return;
+  }
+  if(e.target.closest('[data-timing]')){ openTimingSheet(); return; }
+  if(e.target.closest('#fuelVeil')){ closeFuelSheet(); return; }
+  if(e.target.closest('#fuelDone')){ closeFuelSheet(); return; }
+  const tblk=e.target.closest('[data-toggleblock]');
+  if(tblk){
+    const w=tblk.getAttribute('data-toggleblock'), S=stackState(), i=S.offBlocks.indexOf(w);
+    if(i>-1) S.offBlocks.splice(i,1); else S.offBlocks.push(w);
+    persist(); paintBlocks(); render(); return;
+  }
+  const slot=e.target.closest('.slotPick');
+  if(slot){
+    const idx=+slot.getAttribute('data-ei'), it=stackItems()[idx];
+    if(it){ it.window=slot.getAttribute('data-w'); persist(); buildEditList(); render(); }
+    return;
+  }
+  if(!e.target.closest('.stackSearch')){ const d=document.getElementById('stkDrops'); if(d) d.classList.remove('on'); }
 });
+document.addEventListener('input',e=>{
+  if(e.target.id==='stkQ'){ stkPaintDrops(e.target.value); return; }
+  const dosein=e.target.closest('[data-eidose]');
+  if(dosein){ const idx=+dosein.getAttribute('data-eidose'), it=stackItems()[idx]; if(it){ it.dose=dosein.value; persist(); } return; }
+});
+
+function openSuppInfo(s){
+  if(!s) return;
+  const wLabel=s.window?(stkWindows.find(w=>w.key===s.window)||{}).title||s.window:'';
+  openFuelSheet(
+    '<h3>'+escStk(s.name)+'</h3>'
+    +'<p class="sub2">'+escStk(s.dose)+(wLabel?' · usually '+escStk(wLabel).toLowerCase():'')+'</p>'
+    +'<p class="k">What it does</p><p style="font-size:14px;line-height:1.6;color:var(--muted-strong)">'+escStk(s.helps||'')+'</p>'
+    +'<p class="k">When to take it</p><p style="font-size:14px;line-height:1.6;color:var(--muted-strong)">'+escStk(s.bestTime||s.note||'')+'</p>'
+    +'<button class="fuelDone" id="fuelDone">Close</button>'
+  );
+}
+
 if(!window.Vitality){window.Vitality={save:function(d){try{localStorage.setItem('v:prev:fuel',JSON.stringify(d));}catch(e){}return Promise.resolve(true);},load:function(){try{return Promise.resolve(JSON.parse(localStorage.getItem('v:prev:fuel')||'{}'));}catch(e){return Promise.resolve({});}}};}
 (async()=>{const d=await window.Vitality.load();store=(d&&typeof d==='object'&&!Array.isArray(d))?d:{};render();})();
 </script>
