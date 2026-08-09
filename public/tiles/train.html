@@ -290,19 +290,30 @@
   .goalPill:hover { border-color:rgba(110,231,183,.35); background:rgba(110,231,183,.03); }
   .goalPill.empty { color:var(--muted); font-weight:400; }
 
-  /* ==== progress photos ============================================ */
-  .photoCard { position:relative; border:1px solid var(--hair); border-radius:var(--r-md); overflow:hidden; margin-bottom:14px; background:var(--e2); transition:transform var(--d2) var(--ease-out), box-shadow var(--d2) var(--ease-out); }
-  .photoCard::after { content:''; position:absolute; inset:0; border-radius:var(--r-md); background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%), rgba(110,231,183,.08), transparent 65%); opacity:0; transition:opacity var(--d3) var(--ease-out); pointer-events:none; }
+  /* ==== progress photos — fanned like a hand of prints ============= */
+  .fanWrap { position:relative; width:100%; height:192px; }
+  .fanStage { position:absolute; inset:0; }
+  .photoCard { position:absolute; left:50%; top:50%; width:88px; height:124px; border-radius:var(--r-sm); overflow:hidden; border:1px solid var(--hair-strong); background:var(--e3); box-shadow:0 14px 30px -14px rgba(0,0,0,.65); cursor:pointer; }
+  .photoCard::after { content:''; position:absolute; inset:0; background:radial-gradient(140px circle at var(--mx,50%) var(--my,50%), rgba(110,231,183,.16), transparent 65%); opacity:0; transition:opacity var(--d3) var(--ease-out); pointer-events:none; }
   .photoCard:hover::after { opacity:1; }
-  .photoCard:hover { transform:translateY(-2px); box-shadow:0 16px 36px -18px rgba(0,0,0,.7); }
-  .photoImg { width:100%; display:block; max-height:440px; object-fit:cover; background:var(--e3); position:relative; z-index:1; }
-  .photoMeta { display:flex; align-items:center; justify-content:space-between; padding:11px 14px; position:relative; z-index:1; }
+  .photoImg { width:100%; height:100%; object-fit:cover; display:block; background:var(--e3); }
+  .photoImg--pending { background:var(--e3); }
+  .fanCaption { margin-top:16px; text-align:center; min-height:22px; }
+  .fanCaption .capRow { display:flex; align-items:center; justify-content:center; gap:6px; }
   .photoDate { font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
   .photoX { background:none; border:none; color:var(--muted); font-size:17px; cursor:pointer; padding:2px 6px; line-height:1; transition:color var(--d2); }
   .photoX:hover { color:var(--fail); }
-  .photoNote { padding:0 14px 16px; font-size:13.5px; color:var(--text); line-height:1.55; position:relative; z-index:1; }
+  .photoNote { padding:6px 10px 0; font-size:13.5px; color:var(--text); line-height:1.55; max-width:340px; margin:0 auto; }
   .photoNote.muted { color:var(--muted); font-size:12.5px; }
   .photoStatus { text-align:center; font-size:12px; color:var(--muted); margin-top:8px; min-height:14px; }
+  .fanNav { display:flex; align-items:center; justify-content:center; gap:16px; margin-top:16px; }
+  .fanArrow { width:32px; height:32px; flex:none; border-radius:50%; border:1px solid var(--hair-strong); background:var(--e2); color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:color var(--d2) var(--ease-out), border-color var(--d2) var(--ease-out), transform var(--d1) var(--spring); }
+  .fanArrow:hover { color:var(--text); }
+  .fanArrow:active { transform:scale(.88); }
+  .fanDots { display:flex; align-items:center; gap:5px; }
+  .fanDots span { width:5px; height:5px; border-radius:50%; background:var(--hair-strong); transition:background var(--d2) var(--ease-out), transform var(--d2) var(--spring); }
+  .fanDots span.on { background:var(--signal); transform:scale(1.5); }
+  .fanCount { font-family:var(--mono); font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
 
   .chipRow { display:flex; gap:8px; overflow-x:auto; padding:2px 2px 6px; margin:16px -2px 0; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
   .chipRow::-webkit-scrollbar { display:none; }
@@ -1625,27 +1636,165 @@ function openGoalEdit(){
 }
 
 /* ====================================================================
-   PROGRESS PHOTOS — upload, AI analysis (window.Vitality.addProgressPhoto),
-   stored as {url, date, analysis} refs only; the actual bytes live in
-   the owner's own Supabase Storage (supabase/photos.sql), never in
-   tile_data itself.
+   PROGRESS PHOTOS — fanned like a hand of prints, newest on top. Upload
+   + AI analysis via window.Vitality.addProgressPhoto, stored as
+   {url, date, analysis} refs only; the actual bytes live in the owner's
+   own Supabase Storage (supabase/photos.sql), never in tile_data itself.
+   No deps (no gsap) — spring settle comes from this tile's own
+   var(--spring) token; hover lifts + previews the caption, tap on
+   mobile jumps a card to center, arrows/dots page past 7 photos.
    ================================================================= */
+const FAN_MAX=7, FAN_HALF=3, FAN_K=3.3;
+const FAN_POS=[
+  {rot:-21,scale:.7756,x:-30,y:7.3,z:1},{rot:-14,scale:.8498,x:-22,y:4.0,z:2},{rot:-7,scale:.9346,x:-11,y:1.3,z:3},
+  {rot:0,scale:1,x:0,y:0,z:10},
+  {rot:7,scale:.9346,x:11,y:1.3,z:3},{rot:14,scale:.8498,x:22,y:4.0,z:2},{rot:21,scale:.7756,x:30,y:7.3,z:1},
+];
+let photoCenter=0, photoHoverI=null, photoPrevVisible=new Set();
+function fanSlotConfig(n, slot){
+  if(n>=FAN_MAX) return FAN_POS[slot];
+  const center=(n-1)/2, dist=center>0?(slot-center)/center:0, ad=Math.abs(dist);
+  return { rot:dist*21, scale:1-0.2244*ad*ad, x:dist*30, y:ad*ad*7.3, z:10-Math.round(Math.abs(slot-center)) };
+}
+function photosNewestFirst(){ return (STATE.photos||[]).map((p,i)=>({p,i})).reverse(); }
+const FAN_CHEV_L='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="15 18 9 12 15 6"/></svg>';
+const FAN_CHEV_R='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="9 18 15 12 9 6"/></svg>';
+
 function renderPhotos(){
   const el=$('#photoGallery'); if(!el) return;
-  const photos=STATE.photos||[];
-  if(!photos.length){ el.innerHTML='<p class="emptyHist">No progress photos yet.</p>'; return; }
-  el.innerHTML = photos.map((p,i)=>{
-    const realIdx=photos.length-1-i;
-    return '<div class="photoCard">'
-      + (p.url ? '<img src="'+p.url+'" alt="progress photo" class="photoImg" loading="lazy"/>' : '')
-      + '<div class="photoMeta"><span class="photoDate">'+fmtDate(p.date)+'</span><button class="photoX" data-i="'+realIdx+'" aria-label="Remove">×</button></div>'
-      + (p.analysis===undefined ? '<p class="photoNote muted skeleton-shimmer">Analyzing…</p>'
-        : p.failed ? '<p class="photoNote muted">Couldn’t save this photo — ask your mentor to check Supabase storage, or add your Anthropic key.</p>'
-        : p.analysis ? '<p class="photoNote">'+escapeHtml(p.analysis)+'</p>'
-        : '<p class="photoNote muted">No analysis available for this one.</p>')
-      + '</div>';
-  }).reverse().join('');
-  el.querySelectorAll('.photoX').forEach(b=> b.onclick=()=>{ STATE.photos.splice(+b.dataset.i,1); saveState(); renderPhotos(); });
+  const list=photosNewestFirst();
+  photoHoverI=null;
+  if(!list.length){ el.innerHTML='<p class="emptyHist">No progress photos yet.</p>'; photoPrevVisible=new Set(); return; }
+  const paginated=list.length>FAN_MAX;
+  photoCenter = paginated ? FAN_HALF : Math.round((list.length-1)/2);
+  el.innerHTML =
+      '<div class="fanWrap"><div class="fanStage" id="fanStage">'
+    + list.map(({p,i})=> '<div class="photoCard" data-i="'+i+'">'
+        + (p.url ? '<img src="'+p.url+'" alt="progress photo" class="photoImg" loading="lazy"/>'
+                 : '<div class="photoImg photoImg--pending skeleton-shimmer"></div>')
+        + '</div>').join('')
+    + '</div></div>'
+    + '<div class="fanCaption" id="fanCaption"></div>'
+    + (paginated
+        ? '<div class="fanNav"><button class="fanArrow" data-dir="left" aria-label="Previous photo">'+FAN_CHEV_L+'</button>'
+          + '<div class="fanDots" id="fanDots"></div>'
+          + '<button class="fanArrow" data-dir="right" aria-label="Next photo">'+FAN_CHEV_R+'</button></div>'
+        : '');
+  photoPrevVisible=new Set();
+  layoutPhotoFan('mount');
+  wirePhotoCards();
+  if(paginated) el.querySelectorAll('.fanArrow').forEach(b=> b.onclick=()=> cyclePhotos(b.dataset.dir));
+}
+
+function cyclePhotos(dir){
+  const n=(STATE.photos||[]).length;
+  if(n<=FAN_MAX) return;
+  photoCenter = dir==='right' ? (photoCenter+1)%n : (photoCenter-1+n)%n;
+  photoHoverI=null;
+  layoutPhotoFan(dir==='right'?'cycle-right':'cycle-left');
+}
+
+function layoutPhotoFan(mode){
+  const stage=$('#fanStage'); if(!stage) return;
+  const cards=Array.from(stage.children);
+  const n=cards.length; if(!n) return;
+  const paginated=n>FAN_MAX;
+  const map=new Map();
+  if(!paginated) cards.forEach((_,i)=>map.set(i,i));
+  else for(let slot=0;slot<FAN_MAX;slot++) map.set(((photoCenter+slot-FAN_HALF)%n+n)%n, slot);
+  const slotN=paginated?FAN_MAX:n;
+  const reduced=prefersReducedMotion();
+  const isMount=mode==='mount';
+  const dir=mode==='cycle-left'?'left':mode==='cycle-right'?'right':null;
+
+  cards.forEach((card,domIdx)=>{
+    const slot=map.get(domIdx);
+    const wasVisible=photoPrevVisible.has(domIdx);
+    card.style.pointerEvents = slot!==undefined ? 'auto' : 'none';
+    card.style.transitionDelay='0s';
+
+    if(slot!==undefined){
+      const c=fanSlotConfig(slotN,slot);
+      const hot = photoHoverI!==null && +card.dataset.i===photoHoverI;
+      const finalT='translate(-50%,-50%) translate('+(c.x*FAN_K).toFixed(1)+'px,'+(c.y*FAN_K-(hot?10:0)).toFixed(1)+'px) rotate('+c.rot.toFixed(1)+'deg) scale('+(hot?c.scale*1.06:c.scale).toFixed(3)+')';
+      card.style.zIndex = hot ? 20 : c.z;
+      if(reduced){ card.style.transition='none'; card.style.opacity='1'; card.style.transform=finalT; }
+      else if(isMount){
+        card.style.transition='none'; card.style.opacity='0';
+        card.style.transform='translate(-50%,-50%) translate(0,60px) scale(.5)';
+        void card.offsetWidth;
+        card.style.transitionDelay=(0.12+slot*0.05)+'s';
+        card.style.transition='transform var(--d5) var(--spring), opacity var(--d4) var(--ease-out)';
+        requestAnimationFrame(()=>{ card.style.opacity='1'; card.style.transform=finalT; });
+      } else if(!wasVisible && dir){
+        const enterX = dir==='right' ? 200 : -200;
+        card.style.transition='none'; card.style.opacity='0';
+        card.style.transform='translate(-50%,-50%) translate('+enterX+'px,'+(c.y*FAN_K).toFixed(1)+'px) rotate('+(dir==='right'?26:-26)+'deg) scale(.5)';
+        void card.offsetWidth;
+        card.style.transition='transform var(--d4) var(--ease-momentum), opacity var(--d3) var(--ease-out)';
+        requestAnimationFrame(()=>{ card.style.opacity='1'; card.style.transform=finalT; });
+      } else {
+        card.style.transition='transform var(--d3) var(--spring), opacity var(--d2) var(--ease-out)';
+        card.style.opacity='1'; card.style.transform=finalT;
+      }
+    } else if(wasVisible && dir){
+      const exitX = dir==='right' ? -200 : 200;
+      card.style.transition='transform var(--d3) var(--ease-out), opacity var(--d3) var(--ease-out)';
+      card.style.zIndex=0; card.style.opacity='0';
+      card.style.transform='translate(-50%,-50%) translate('+exitX+'px,0) rotate('+(dir==='right'?-26:26)+'deg) scale(.5)';
+    } else {
+      card.style.transition = reduced ? 'none' : 'transform var(--d3) var(--ease-out), opacity var(--d3) var(--ease-out)';
+      card.style.opacity='0'; card.style.zIndex=0;
+      card.style.transform='translate(-50%,-50%) scale(.4)';
+    }
+  });
+  photoPrevVisible=new Set(map.keys());
+
+  const centerDomIdx = paginated ? photoCenter : Math.round((slotN-1)/2);
+  const centerCard = cards[centerDomIdx];
+  updatePhotoCaption(photoHoverI!==null ? photoHoverI : (centerCard? +centerCard.dataset.i : null));
+  if(paginated) renderPhotoDots(n);
+}
+
+function renderPhotoDots(n){
+  const dots=$('#fanDots'); if(!dots) return;
+  if(n<=12){ let h=''; for(let i=0;i<n;i++) h+='<span class="'+(i===photoCenter?'on':'')+'"></span>'; dots.innerHTML=h; }
+  else dots.innerHTML='<span class="fanCount">'+(photoCenter+1)+' / '+n+'</span>';
+}
+
+function updatePhotoCaption(idx){
+  const cap=$('#fanCaption'); if(!cap) return;
+  const p = idx!==null && STATE.photos ? STATE.photos[idx] : null;
+  if(!p){ cap.innerHTML=''; return; }
+  const noteHtml = p.analysis===undefined ? '<p class="photoNote muted skeleton-shimmer">Analyzing…</p>'
+    : p.failed ? '<p class="photoNote muted">Couldn’t save this photo — ask your mentor to check Supabase storage, or add your Anthropic key.</p>'
+    : p.analysis ? '<p class="photoNote">'+escapeHtml(p.analysis)+'</p>'
+    : '<p class="photoNote muted">No analysis available for this one.</p>';
+  cap.innerHTML='<div class="capRow"><span class="photoDate">'+fmtDate(p.date)+'</span><button class="photoX" data-i="'+idx+'" aria-label="Remove photo">×</button></div>'+noteHtml;
+  const delBtn=cap.querySelector('.photoX');
+  if(delBtn) delBtn.onclick=()=>{ STATE.photos.splice(+delBtn.dataset.i,1); saveState(); renderPhotos(); };
+}
+
+function wirePhotoCards(){
+  const stage=$('#fanStage'); if(!stage) return;
+  const cards=Array.from(stage.children);
+  let leaveTimer=null;
+  cards.forEach((card,domIdx)=>{
+    card.addEventListener('pointerenter', ()=>{
+      if(leaveTimer){ clearTimeout(leaveTimer); leaveTimer=null; }
+      photoHoverI=+card.dataset.i;
+      layoutPhotoFan('update');
+    });
+    card.addEventListener('click', ()=>{
+      if(cards.length>FAN_MAX) photoCenter=domIdx;
+      photoHoverI=null;
+      layoutPhotoFan('update');
+    });
+  });
+  stage.addEventListener('pointerleave', ()=>{
+    if(leaveTimer) clearTimeout(leaveTimer);
+    leaveTimer=setTimeout(()=>{ photoHoverI=null; layoutPhotoFan('update'); },70);
+  });
 }
 function wirePhotoUpload(){
   const galleryBtn=$('#addPhotoBtn'), cameraBtn=$('#takePhotoBtn'), galleryInput=$('#photoInput'), cameraInput=$('#cameraInput');
