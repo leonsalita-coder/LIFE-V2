@@ -515,6 +515,114 @@
     .line, .area, .dot { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; transform: none !important; }
     .ovCard:hover, .swapItem:hover, .photoCard:hover, .addLift:hover .addLiftRing, .finishBtn:hover { transform: none !important; box-shadow: none !important; }
   }
+
+  /* ====================================================================
+     REDESIGN LAYER v2 — button feedback states, skeleton loaders, cursor-
+     reactive card light, a radial rest ring, and the JARVIS-style coach
+     orb. Same tokens, same restraint (interaction-triggered only, one
+     idle-loop exception for the orb) — this only adds depth to pieces
+     that already exist above. ================================ */
+
+  /* ---- buttons: a real loading spinner → success check, no markup
+     changes needed — text goes transparent (keeping its layout width)
+     and a centered pseudo-element takes over. ---------------------- */
+  [data-state] { position: relative; }
+  [data-state="loading"], [data-state="success"] { color: transparent !important; pointer-events: none; }
+  [data-state] svg { opacity: 0; }
+  [data-state]::after { content: ''; position: absolute; left: 50%; top: 50%; }
+  [data-state="loading"]::after { width: 16px; height: 16px; margin: -8px 0 0 -8px; border: 2px solid rgba(255,255,255,.25); border-top-color: var(--state-ink, #fff); border-radius: 50%; animation: btnSpin .65s linear infinite; }
+  [data-state="success"]::after { width: 13px; height: 7px; margin: -5px 0 0 -6px; border-left: 2.5px solid var(--state-ink, #fff); border-bottom: 2.5px solid var(--state-ink, #fff); transform: rotate(-45deg) scale(0); opacity: 0; animation: btnCheck .45s var(--spring) forwards; }
+  .finishBtn[data-state], .pbtn.save[data-state] { --state-ink: var(--ink); }
+  @keyframes btnSpin { to { transform: rotate(360deg); } }
+  @keyframes btnCheck { 0% { transform: rotate(-45deg) scale(0); opacity: 0; } 55% { opacity: 1; } 100% { transform: rotate(-45deg) scale(1); opacity: 1; } }
+  .miniSpinner { display: inline-block; width: 11px; height: 11px; margin-right: 6px; border: 2px solid rgba(255,255,255,.18); border-top-color: var(--mint); border-radius: 50%; vertical-align: -1.5px; animation: btnSpin .6s linear infinite; }
+  .miniCheck { display: inline-block; margin-right: 6px; color: var(--mint); font-weight: 700; }
+
+  /* ---- skeleton shimmer: for "analyzing…" / async-pending text ------ */
+  .skeleton-shimmer { position: relative; overflow: hidden; }
+  .skeleton-shimmer::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,.07) 45%, rgba(110,231,183,.16) 50%, rgba(255,255,255,.07) 55%, transparent 80%); background-size: 200% 100%; animation: skShimmer 1.6s ease-in-out infinite; }
+  @keyframes skShimmer { 0% { background-position: 160% 0; } 100% { background-position: -60% 0; } }
+
+  /* ---- cards: a soft light that follows the cursor, hover-only ------ */
+  .ex, .ovCard, .photoCard { position: relative; }
+  .ex::after, .ovCard::after, .photoCard::after { content: ''; position: absolute; inset: -1px; border-radius: 16px; background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(110,231,183,.10), transparent 65%); opacity: 0; transition: opacity .25s ease; pointer-events: none; z-index: 0; }
+  .ex:hover::after, .ovCard:hover::after, .photoCard:hover::after { opacity: 1; }
+  .ex > *, .ovCard > * { position: relative; z-index: 1; }
+  .pill.shimmer { animation: pillSnap .32s var(--spring); }
+  @keyframes pillSnap { 0% { transform: scale(1); } 40% { transform: scale(1.015); } 100% { transform: scale(1); } }
+  .streakPill { box-shadow: 0 0 14px rgba(245,158,11,.12); }
+
+  /* ---- rest timer: a radial ring drains behind the countdown -------- */
+  .restMid { position: relative; z-index: 1; }
+  .restTime, .restLabel { position: relative; z-index: 1; }
+  .restRing { position: absolute; inset: -3px auto auto 50%; width: 40px; height: 40px; margin-left: -20px; top: 50%; transform: translateY(-50%) rotate(-90deg); pointer-events: none; }
+  .restRingTrack { fill: none; stroke: rgba(255,255,255,.08); stroke-width: 2.5; }
+  .restRingFill { fill: none; stroke: var(--mint); stroke-width: 2.5; stroke-linecap: round; transition: stroke-dashoffset .3s linear, stroke .3s; filter: drop-shadow(0 0 4px rgba(110,231,183,.55)); }
+  .restbar.over .restRingFill { stroke: var(--gold); filter: drop-shadow(0 0 6px rgba(245,158,11,.6)); }
+  .restbar.over .restMid { animation: restOverPulse 1s var(--ease) infinite; }
+  @keyframes restOverPulse { 0%,100% { opacity: 1; } 50% { opacity: .72; } }
+
+  /* ---- the coach orb: idle FAB — a living core + a rotating ring ---- */
+  .coachFab { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); z-index: 45; width: 58px; height: 58px; border-radius: 50%; border: none; background: transparent; padding: 0; cursor: pointer; isolation: isolate; transition: transform .18s var(--spring); }
+  .coachFab:hover { transform: scale(1.06); }
+  .coachFab:active { transform: scale(.9); }
+  .coachFab::before { content: ''; position: absolute; inset: -12px; border-radius: 50%; background: radial-gradient(circle, rgba(110,231,183,.32), transparent 70%); animation: coachBreathe 4s var(--ease) infinite; z-index: -1; }
+  .coachRing { position: absolute; inset: -3px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0deg, rgba(110,231,183,.9) 70deg, transparent 150deg, transparent 230deg, rgba(167,243,208,.65) 300deg, transparent 360deg); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px)); animation: coachSpin 5s linear infinite; }
+  .coachCore { position: absolute; inset: 15px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #fff, #cdf9e6 22%, #6EE7B7 55%, #1c6b4c 100%); box-shadow: 0 0 18px rgba(110,231,183,.55), inset 0 0 8px rgba(0,0,0,.25); animation: coachPulse 3.2s var(--ease) infinite; }
+  @keyframes coachSpin { to { transform: rotate(360deg); } }
+  @keyframes coachBreathe { 0%,100% { opacity: .5; transform: scale(1); } 50% { opacity: .85; transform: scale(1.15); } }
+  @keyframes coachPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(.9); } }
+  .coachFab.thinking .coachCore { animation: coachThink .8s ease-in-out infinite; }
+  @keyframes coachThink { 0%,100% { transform: scale(.86); } 50% { transform: scale(1.06); } }
+
+  /* ---- the coach overlay: the orb morphs into this, full-immersive -- */
+  .coachOverlay { position: fixed; inset: 0; z-index: 92; display: flex; align-items: center; justify-content: center; padding: max(20px, env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom)); opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+  .coachOverlay.open { opacity: 1; pointer-events: auto; }
+  .cvBackdrop { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 100%, rgba(14,38,30,.88), rgba(2,4,4,.97) 68%); backdrop-filter: blur(26px) saturate(1.25); -webkit-backdrop-filter: blur(26px) saturate(1.25); }
+  .coachMorph { position: relative; width: min(92vw, 560px); height: min(84vh, 720px); background: linear-gradient(180deg, rgba(16,26,22,.94), rgba(4,6,6,.97)); border: 1px solid rgba(110,231,183,.22); border-radius: 28px; padding: 22px 20px 18px; display: flex; flex-direction: column; box-shadow: 0 40px 120px rgba(0,0,0,.6), inset 0 0 0 1px rgba(110,231,183,.04); overflow: hidden; will-change: transform, border-radius, opacity; }
+  .cvClose { position: absolute; right: 14px; top: 14px; background: none; border: none; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 50%; transition: color .15s, background .15s; }
+  .cvClose:hover { color: var(--text); background: rgba(255,255,255,.06); }
+  .cvClose svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+  .cvHead { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 8px 40px 18px; flex: none; }
+  .cvOrbWrap { position: relative; width: 64px; height: 64px; isolation: isolate; }
+  .cvOrbWrap::before { content: ''; position: absolute; inset: -16px; border-radius: 50%; background: radial-gradient(circle, rgba(110,231,183,.35), transparent 70%); animation: coachBreathe 4s var(--ease) infinite; z-index: -1; }
+  .cvRing { position: absolute; inset: -4px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0deg, rgba(110,231,183,.95) 70deg, transparent 150deg, transparent 230deg, rgba(167,243,208,.7) 300deg, transparent 360deg); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px)); animation: coachSpin 5s linear infinite; }
+  .cvCore { position: absolute; inset: 16px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #fff, #cdf9e6 22%, #6EE7B7 55%, #1c6b4c 100%); box-shadow: 0 0 26px rgba(110,231,183,.6), inset 0 0 10px rgba(0,0,0,.25); animation: coachPulse 3.2s var(--ease) infinite; }
+  .coachOverlay.thinking .cvCore { animation: coachThink .8s ease-in-out infinite; }
+  .coachOverlay.thinking .cvRing { animation-duration: 1.6s; }
+  .cvTitle { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 22px; margin-top: 14px; }
+  .cvStatus { display: flex; align-items: center; gap: 2px; font-family: var(--vt-mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-top: 6px; min-height: 14px; }
+  .cvWave { display: none; gap: 3px; align-items: center; height: 14px; margin-left: 8px; }
+  .coachOverlay.thinking .cvWave { display: flex; }
+  .cvWave span { width: 3px; height: 4px; background: var(--mint); border-radius: 2px; animation: cvWaveBar 1s ease-in-out infinite; }
+  .cvWave span:nth-child(2) { animation-delay: .15s; } .cvWave span:nth-child(3) { animation-delay: .3s; } .cvWave span:nth-child(4) { animation-delay: .45s; }
+  @keyframes cvWaveBar { 0%,100% { height: 4px; } 50% { height: 13px; } }
+  .cvLog { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px 8px; }
+  .cvMsg { padding: 11px 14px; border-radius: 16px; font-size: 14.5px; line-height: 1.5; max-width: 86%; opacity: 0; transform: translateY(8px); animation: cvMsgIn .35s var(--ease) forwards; }
+  @keyframes cvMsgIn { to { opacity: 1; transform: none; } }
+  .cvMsg.user { align-self: flex-end; background: var(--mint); color: var(--ink); border-bottom-right-radius: 6px; }
+  .cvMsg.ai { align-self: flex-start; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.08); color: var(--text); border-bottom-left-radius: 6px; }
+  .cvEmpty { margin: auto; text-align: center; color: var(--muted); font-family: var(--serif); font-style: italic; font-size: 15px; max-width: 300px; line-height: 1.6; }
+  .cvInputRow { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex: none; background: rgba(255,255,255,.03); border: 1px solid var(--hair); border-radius: 999px; padding: 6px 6px 6px 16px; transition: border-color .18s var(--ease); }
+  .cvInputRow:focus-within { border-color: var(--mint); }
+  .cvInputRow input { flex: 1; background: none; border: none; outline: none; color: var(--text); font: inherit; font-size: 14.5px; padding: 8px 0; }
+  .cvSend { flex: none; width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--mint); color: var(--ink); display: grid; place-items: center; cursor: pointer; transition: transform .18s var(--spring), opacity .2s; }
+  .cvSend:hover:not(:disabled) { transform: scale(1.08); }
+  .cvSend:disabled { opacity: .4; cursor: default; }
+  .cvSend svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .cvApply { margin-top: 10px; flex: none; }
+
+  @media (max-width: 480px) {
+    .coachMorph { border-radius: 22px; padding: 18px 16px 14px; }
+    .cvOrbWrap { width: 54px; height: 54px; }
+    .cvTitle { font-size: 19px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .coachRing, .cvRing, .coachCore, .cvCore, [data-state]::before, .skeleton-shimmer::after, .restbar.over .restMid { animation: none !important; }
+    .coachFab::before, .cvOrbWrap::before { animation: none !important; opacity: .6; }
+    .ex::after, .ovCard::after, .photoCard::after { transition: none !important; }
+    .pill.shimmer { animation: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -571,10 +679,12 @@
 </div>
 
 <button class="coachFab" id="coachFab" title="Talk to your coach" aria-label="Talk to your coach">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+  <span class="coachRing"></span>
+  <span class="coachCore"></span>
 </button>
 
 <div id="popRoot"></div>
+<div id="coachRoot"></div>
 <div class="celebrate" id="celebrate">
   <div class="burst">
     <div class="bstar"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6 .9-4.8 4.6 1.2 6.6L12 18.5 6.1 20.8l1.2-6.6L2.5 9.6l6.6-.9z"/></svg></div>
@@ -689,6 +799,9 @@ function sessionTotals(session){ if(session.off) return {logged:0,total:0}; let 
    ================================================================= */
 const $ = s => document.querySelector(s);
 function svg(p,extra){ return '<svg viewBox="0 0 24 24"'+(extra||'')+'>'+p+'</svg>'; }
+/* ---- button feedback: loading spinner → success check, via [data-state] */
+function setBtnState(btn, state){ if(!btn) return; if(state) btn.dataset.state=state; else delete btn.dataset.state; }
+function pulseSuccess(btn, ms){ setBtnState(btn,'success'); setTimeout(()=>setBtnState(btn,null), ms||900); }
 const IC = {
   swap:'<path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3"/>',
   history:'<path d="M3 17l5-5 4 4 8-8M16 8h5v5"/>',
@@ -794,7 +907,9 @@ function renderFinish(session){
       }
       if(!session.insight) fetchInsight(session);
     }
+    const wasSubmitted=STATE.submitted;
     renderFinish(session); renderStreak(); renderOverviewCards(); saveState();
+    if(wasSubmitted) pulseSuccess($('#finishBtn'));
   };
   renderInsight(session);
 }
@@ -1095,17 +1210,26 @@ function handleAct(act, e, session, btn){
    REST TIMER
    ================================================================= */
 const restTimers={};
-function startRest(e){ stopRest(e.id); const rx=prescription(e); restTimers[e.id]={remaining:rx.rest, handle:null}; tickRest(e); const card=document.querySelector('.ex[data-id="'+e.id+'"]'); if(card) mountRestBar(card, e); }
+const REST_RING_C = Math.round(2*Math.PI*15*1000)/1000;
+function startRest(e){ stopRest(e.id); const rx=prescription(e); restTimers[e.id]={remaining:rx.rest, total:Math.max(1,rx.rest), handle:null}; tickRest(e); const card=document.querySelector('.ex[data-id="'+e.id+'"]'); if(card) mountRestBar(card, e); }
 function tickRest(e){ const t=restTimers[e.id]; if(!t) return; t.handle=setInterval(()=>{ t.remaining-=1; updateRest(e.id); },1000); }
 function stopRest(id){ const t=restTimers[id]; if(t&&t.handle) clearInterval(t.handle); delete restTimers[id]; }
+function paintRest(bar, t){
+  const over=t.remaining<=0;
+  bar.classList.toggle('over',over);
+  bar.querySelector('.restTime').textContent = over?'go →':mmss(Math.max(0,t.remaining));
+  const ring=bar.querySelector('.restRingFill');
+  if(ring){ const pct=Math.max(0,Math.min(1, t.remaining/(t.total||1))); ring.style.strokeDashoffset=String(REST_RING_C*(1-pct)); }
+}
 function mountRestBar(card, e){ const slot=card.querySelector('.restSlot'); const t=restTimers[e.id]; if(!t||!slot){ if(slot)slot.innerHTML=''; return; }
   const over=t.remaining<=0;
-  slot.innerHTML='<div class="restbar'+(over?' over':'')+'"><button class="restStep" data-d="-15">−15</button><div class="restMid"><div class="restTime">'+(over?'go →':mmss(Math.max(0,t.remaining)))+'</div><div class="restLabel">'+(e.group?('Superset '+e.group):e.name)+'</div></div><button class="restStep" data-d="15">+15</button><button class="restX" aria-label="Dismiss">×</button></div>';
+  slot.innerHTML='<div class="restbar'+(over?' over':'')+'"><button class="restStep" data-d="-15">−15</button><div class="restMid"><svg class="restRing" viewBox="0 0 36 36" aria-hidden="true"><circle class="restRingTrack" cx="18" cy="18" r="15"/><circle class="restRingFill" cx="18" cy="18" r="15" style="stroke-dasharray:'+REST_RING_C+'"/></svg><div class="restTime">'+(over?'go →':mmss(Math.max(0,t.remaining)))+'</div><div class="restLabel">'+(e.group?('Superset '+e.group):e.name)+'</div></div><button class="restStep" data-d="15">+15</button><button class="restX" aria-label="Dismiss">×</button></div>';
+  paintRest(slot.querySelector('.restbar'), t);
   slot.querySelector('[data-d="-15"]').onclick=()=>{ t.remaining-=15; updateRest(e.id); };
   slot.querySelector('[data-d="15"]').onclick=()=>{ t.remaining+=15; updateRest(e.id); };
   slot.querySelector('.restX').onclick=()=>{ stopRest(e.id); slot.innerHTML=''; };
 }
-function updateRest(id){ const card=document.querySelector('.ex[data-id="'+id+'"]'); const t=restTimers[id]; if(!card||!t) return; const bar=card.querySelector('.restbar'); if(!bar) return; const over=t.remaining<=0; bar.classList.toggle('over',over); bar.querySelector('.restTime').textContent= over?'go →':mmss(Math.max(0,t.remaining)); }
+function updateRest(id){ const card=document.querySelector('.ex[data-id="'+id+'"]'); const t=restTimers[id]; if(!card||!t) return; const bar=card.querySelector('.restbar'); if(!bar) return; paintRest(bar, t); }
 
 /* ====================================================================
    DRAG TO REORDER
@@ -1293,46 +1417,107 @@ function openSwap(e){
 }
 
 /* ---- generate: a real conversation with the coach ------------------ */
-function openGenerate(){
+/* ====================================================================
+   THE COACH ORB — the FAB doesn't open a modal, it morphs into one. A
+   hand-rolled FLIP: the overlay's panel is laid out at its real full-size
+   position by CSS, we read that rect, then paint an inline transform that
+   makes it START at the FAB's rect (translate+scale down to a circle),
+   then clear the transform on the next frame so it animates there. Closing
+   reverses the exact same transform. No modal snap, no library. ------- */
+let coachOpen=false, coachBusy=false;
+function orbToFabTransform(morph){
+  const fab=$('#coachFab'), fr=fab.getBoundingClientRect(), tr=morph.getBoundingClientRect();
+  const sx=fr.width/tr.width, sy=fr.height/tr.height;
+  const dx=(fr.left+fr.width/2)-(tr.left+tr.width/2);
+  const dy=(fr.top+fr.height/2)-(tr.top+tr.height/2);
+  return 'translate('+dx+'px,'+dy+'px) scale('+sx+','+sy+')';
+}
+function prefersReducedMotion(){ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+function openCoach(){
+  if(coachOpen) return; coachOpen=true;
   const session=curSession();
   const messages=[]; // {role:'user'|'ai', text}
-  openPop(popHead('Generate', 'Talk to your coach')
-    + '<div class="chatLog" id="chatLog"></div>'
-    + '<div class="searchRow" style="margin-top:12px"><input id="chatIn" placeholder="e.g. 30 min, dumbbells only, explosiveness for taekwondo" autocomplete="off"/></div>'
-    + '<button class="pbtn save" id="chatSend" style="width:100%;margin-top:10px">Send</button>'
-    + '<div id="chatResult"></div>',
-    scrim=>{
-      const log=scrim.querySelector('#chatLog'), input=scrim.querySelector('#chatIn'), sendBtn=scrim.querySelector('#chatSend'), result=scrim.querySelector('#chatResult');
-      function paint(){ log.innerHTML = messages.map(m=>'<div class="chatMsg '+m.role+'">'+escapeHtml(m.text)+'</div>').join(''); log.scrollTop = log.scrollHeight; }
-      async function send(){
-        const text=input.value.trim(); if(!text) return;
-        messages.push({role:'user', text}); input.value=''; paint();
-        sendBtn.disabled=true; input.disabled=true;
-        messages.push({role:'ai', text:'…thinking'}); paint();
-        try{
-          const history = messages.slice(0,-1).map(m=>({role:m.role==='user'?'user':'assistant', text:m.text}));
-          const res = await window.Vitality.generateWorkout({ goal:fullGoalContext(), messages:history });
-          messages.pop();
-          if(res && res.kind==='question'){
-            messages.push({role:'ai', text:res.text}); paint();
-          } else if(res && res.kind==='workout'){
-            messages.push({role:'ai', text:res.reply||'Here’s your session.'}); paint();
-            showApply(res, session, result);
-          } else {
-            messages.push({role:'ai', text:"Couldn't build that — try again."}); paint();
-          }
-        }catch(err){
-          messages.pop();
-          const reason=err&&err.message;
-          messages.push({role:'ai', text: reason==='no_key' ? 'Add your own Anthropic key to use this — ask your mentor.' : "Couldn't reach the coach — try again."});
-          paint();
-        }
-        sendBtn.disabled=false; input.disabled=false; input.focus();
-      }
-      sendBtn.onclick=send;
-      input.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); send(); } });
-      input.focus();
+  const fab=$('#coachFab'); fab.style.visibility='hidden';
+  const root=$('#coachRoot');
+  root.innerHTML = '<div class="coachOverlay" id="coachOverlay"><div class="cvBackdrop" id="cvBackdrop"></div><div class="coachMorph" id="coachMorph">'
+    + '<button class="cvClose" aria-label="Close">'+svg('<path d="M6 6l12 12M18 6L6 18"/>',' fill="none" stroke="currentColor"')+'</button>'
+    + '<div class="cvHead"><div class="cvOrbWrap"><span class="cvRing"></span><span class="cvCore"></span></div>'
+    + '<div class="cvTitle">Your Coach</div><div class="cvStatus" id="cvStatus"><span id="cvStatusTxt">Ready</span><span class="cvWave"><span></span><span></span><span></span><span></span></span></div></div>'
+    + '<div class="cvLog" id="cvLog"><p class="cvEmpty">Tell me what you\'ve got — time, equipment, what you want to train — and I\'ll build today\'s session.</p></div>'
+    + '<div id="cvResult"></div>'
+    + '<div class="cvInputRow"><input id="cvIn" placeholder="e.g. 30 min, dumbbells only, explosiveness for taekwondo" autocomplete="off"/><button class="cvSend" id="cvSend" aria-label="Send">'+svg('<path d="M12 19V5M6 11l6-6 6 6"/>',' fill="none" stroke="currentColor"')+'</button></div>'
+    + '</div></div>';
+  const overlay=$('#coachOverlay'), morph=$('#coachMorph');
+  const reduced=prefersReducedMotion();
+  if(reduced){
+    morph.style.borderRadius='28px';
+    overlay.classList.add('open');
+  } else {
+    morph.style.transform=orbToFabTransform(morph);
+    morph.style.borderRadius='50%';
+    morph.style.opacity='.5';
+    void morph.offsetWidth;
+    requestAnimationFrame(()=>{
+      morph.style.transition='transform .6s var(--premium), border-radius .6s var(--premium), opacity .35s ease';
+      morph.style.transform='translate(0,0) scale(1,1)';
+      morph.style.borderRadius='28px';
+      morph.style.opacity='1';
+      overlay.classList.add('open');
     });
+  }
+  const log=$('#cvLog'), input=$('#cvIn'), sendBtn=$('#cvSend'), result=$('#cvResult'), statusTxt=$('#cvStatusTxt');
+  function paint(){
+    log.innerHTML = messages.map(m=>'<div class="cvMsg '+m.role+'">'+escapeHtml(m.text)+'</div>').join('');
+    log.scrollTop = log.scrollHeight;
+  }
+  async function send(){
+    const text=input.value.trim(); if(!text || coachBusy) return;
+    coachBusy=true;
+    messages.push({role:'user', text}); input.value=''; paint();
+    setBtnState(sendBtn,'loading'); input.disabled=true;
+    overlay.classList.add('thinking'); fab.classList.add('thinking'); statusTxt.textContent='Thinking…';
+    try{
+      const history = messages.map(m=>({role:m.role==='user'?'user':'assistant', text:m.text}));
+      const res = await window.Vitality.generateWorkout({ goal:fullGoalContext(), messages:history });
+      if(res && res.kind==='question'){
+        messages.push({role:'ai', text:res.text}); paint();
+      } else if(res && res.kind==='workout'){
+        messages.push({role:'ai', text:res.reply||'Here’s your session.'}); paint();
+        showApply(res, session, result);
+      } else {
+        messages.push({role:'ai', text:"Couldn't build that — try again."}); paint();
+      }
+    }catch(err){
+      const reason=err&&err.message;
+      messages.push({role:'ai', text: reason==='no_key' ? 'Add your own Anthropic key to use this — ask your mentor.' : "Couldn't reach the coach — try again."});
+      paint();
+    }
+    overlay.classList.remove('thinking'); fab.classList.remove('thinking'); statusTxt.textContent='Ready';
+    setBtnState(sendBtn,null); input.disabled=false; input.focus(); coachBusy=false;
+  }
+  sendBtn.onclick=send;
+  input.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); send(); } });
+  input.addEventListener('focus',()=>{ if(!overlay.classList.contains('thinking')) statusTxt.textContent='Listening'; });
+  input.addEventListener('blur',()=>{ if(!overlay.classList.contains('thinking')) statusTxt.textContent='Ready'; });
+  overlay.querySelector('.cvClose').onclick=closeCoach;
+  $('#cvBackdrop').onclick=closeCoach;
+  const escHandler2=ev=>{ if(ev.key==='Escape') closeCoach(); };
+  document.addEventListener('keydown', escHandler2);
+  overlay._escHandler=escHandler2;
+  input.focus();
+}
+function closeCoach(){
+  const overlay=$('#coachOverlay'); if(!overlay || !coachOpen) return;
+  coachOpen=false;
+  if(overlay._escHandler) document.removeEventListener('keydown', overlay._escHandler);
+  const morph=$('#coachMorph'); const fab=$('#coachFab');
+  overlay.classList.remove('open');
+  const cleanup=()=>{ $('#coachRoot').innerHTML=''; fab.style.visibility=''; fab.classList.remove('thinking'); };
+  if(prefersReducedMotion()){ cleanup(); return; }
+  morph.style.transform=orbToFabTransform(morph);
+  morph.style.borderRadius='50%';
+  morph.style.opacity='.4';
+  setTimeout(cleanup, 340);
 }
 function showApply(res, session, result){
   const used=new Set(session.ex.map(x=>x.id));
@@ -1346,8 +1531,8 @@ function showApply(res, session, result){
   const warmup=(res.warmup||[]).map(t=>({text:t, done:false}));
   const cooldown=(res.cooldown||[]).map(t=>({text:t, done:false}));
   result.innerHTML = '<div class="popBtns" style="margin-top:14px"><button class="pbtn ghost" id="genAdd">Add alongside</button><button class="pbtn save" id="genReplace">Replace today</button></div>';
-  result.querySelector('#genAdd').onclick=()=>{ session.ex.push(...defs); if(warmup.length) session.warmup=session.warmup.concat(warmup); if(cooldown.length) session.cooldown=session.cooldown.concat(cooldown); closePop(); render(); };
-  result.querySelector('#genReplace').onclick=()=>{ session.ex.forEach(x=>stopRest(x.id)); session.ex=defs; session.warmup=warmup; session.cooldown=cooldown; closePop(); render(); };
+  result.querySelector('#genAdd').onclick=()=>{ session.ex.push(...defs); if(warmup.length) session.warmup=session.warmup.concat(warmup); if(cooldown.length) session.cooldown=session.cooldown.concat(cooldown); closeCoach(); render(); };
+  result.querySelector('#genReplace').onclick=()=>{ session.ex.forEach(x=>stopRest(x.id)); session.ex=defs; session.warmup=warmup; session.cooldown=cooldown; closeCoach(); render(); };
 }
 
 /* ---- tune popup --------------------------------------------------- */
@@ -1489,7 +1674,7 @@ function renderPhotos(){
     return '<div class="photoCard">'
       + (p.url ? '<img src="'+p.url+'" alt="progress photo" class="photoImg" loading="lazy"/>' : '')
       + '<div class="photoMeta"><span class="photoDate">'+fmtDate(p.date)+'</span><button class="photoX" data-i="'+realIdx+'" aria-label="Remove">×</button></div>'
-      + (p.analysis===undefined ? '<p class="photoNote muted">Analyzing…</p>'
+      + (p.analysis===undefined ? '<p class="photoNote muted skeleton-shimmer">Analyzing…</p>'
         : p.failed ? '<p class="photoNote muted">Couldn’t save this photo — ask your mentor to check Supabase storage, or add your Anthropic key.</p>'
         : p.analysis ? '<p class="photoNote">'+escapeHtml(p.analysis)+'</p>'
         : '<p class="photoNote muted">No analysis available for this one.</p>')
@@ -1510,7 +1695,7 @@ function handlePhotoFile(input){
   if(!file) return;
   if(!file.type.startsWith('image/')){ status.textContent='That’s not an image.'; return; }
   if(file.size > 10*1024*1024){ status.textContent='Photo’s too large — try one under 10MB.'; return; }
-  status.textContent='Uploading…';
+  status.innerHTML='<span class="miniSpinner"></span>Uploading…';
   const reader=new FileReader();
   reader.onload=async()=>{
     const dataUrl=String(reader.result||'');
@@ -1524,7 +1709,9 @@ function handlePhotoFile(input){
       entry.url=(res&&res.url)||null; entry.analysis=(res&&res.analysis)||null;
       if(!entry.url) entry.failed=true;
     }catch(err){ entry.analysis=null; entry.failed=true; }
-    status.textContent=''; saveState(); renderPhotos();
+    if(entry.failed){ status.textContent=''; }
+    else { status.innerHTML='<span class="miniCheck">✓</span>Saved'; setTimeout(()=>{ status.innerHTML=''; },1400); }
+    saveState(); renderPhotos();
   };
   reader.readAsDataURL(file);
 }
@@ -1834,6 +2021,19 @@ function wireReveal(){
   els.forEach(el=>io.observe(el));
 }
 
+/* ---- cursor-reactive card light: one delegated listener per container,
+   so it survives re-renders without needing to be rewired each time ---- */
+function wireCardGlow(container, selector){
+  if(!container) return;
+  container.addEventListener('pointermove', ev=>{
+    const card = ev.target.closest(selector);
+    if(!card || !container.contains(card)) return;
+    const r=card.getBoundingClientRect();
+    card.style.setProperty('--mx', ((ev.clientX-r.left)/r.width*100)+'%');
+    card.style.setProperty('--my', ((ev.clientY-r.top)/r.height*100)+'%');
+  });
+}
+
 /* ---- inlined backdrop particles (self-contained) ------------------ */
 function spawnParticles(root){
   if(!root) return;
@@ -1869,7 +2069,10 @@ function spawnParticles(root){
   render(); wireFresh();
   renderGoalBubble(); renderPhotos(); wirePhotoUpload(); renderOverviewCards(); renderStatsPicker(); drawStatsSection();
   const exportBtn=$('#exportCsvBtn'); if(exportBtn) exportBtn.onclick=exportCSV;
-  const fab=$('#coachFab'); if(fab) fab.onclick=()=> openGenerate();
+  const fab=$('#coachFab'); if(fab) fab.onclick=()=> openCoach();
+  wireCardGlow($('#exwrap'), '.ex');
+  wireCardGlow($('#overviewCards'), '.ovCard');
+  wireCardGlow($('#photoGallery'), '.photoCard');
   spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
   wireReveal();
 })();
