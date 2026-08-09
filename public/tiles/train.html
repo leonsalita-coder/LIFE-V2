@@ -400,13 +400,13 @@
   .wdBars { display:flex; gap:8px; margin-top:18px; align-items:flex-end; height:72px; }
   .wdBar { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; }
   .wdTrack { flex:1; width:100%; display:flex; align-items:flex-end; }
-  .wdFill { width:100%; background:linear-gradient(180deg, rgba(167,243,208,.9), var(--signal)); border-radius:4px 4px 0 0; min-height:2px; box-shadow:0 0 8px rgba(110,231,183,.25); transition:height var(--d4) var(--ease-momentum); }
+  .wdFill { width:100%; background:linear-gradient(180deg, rgba(167,243,208,.9), var(--signal)); border-radius:4px 4px 0 0; min-height:2px; box-shadow:0 0 8px rgba(110,231,183,.25); transition:height var(--d5) var(--ease-out); }
   .wdLbl { font-family:var(--mono); font-size:9px; color:var(--muted); text-transform:uppercase; }
   .muscleBars { display:flex; flex-direction:column; gap:11px; padding:4px 2px; }
   .mbRow { display:flex; align-items:center; gap:10px; }
   .mbLbl { width:88px; flex:none; font-size:12px; color:var(--muted-2); text-transform:capitalize; }
   .mbTrack { flex:1; height:9px; border-radius:999px; background:rgba(255,255,255,.05); overflow:hidden; }
-  .mbFill { height:100%; background:linear-gradient(90deg, var(--signal), #d7fbe9); border-radius:999px; box-shadow:0 0 8px rgba(110,231,183,.28); transition:width var(--d4) var(--ease-momentum); }
+  .mbFill { height:100%; background:linear-gradient(90deg, var(--signal), #d7fbe9); border-radius:999px; box-shadow:0 0 8px rgba(110,231,183,.28); transition:width var(--d5) var(--ease-out); }
   .mbVal { width:56px; flex:none; text-align:right; font-family:var(--mono); font-size:11px; color:var(--muted); }
   .goalRow { position:relative; padding:12px 34px 14px 0; border-bottom:1px solid var(--hair); }
   .goalRow:last-of-type { border-bottom:none; }
@@ -2018,18 +2018,24 @@ function animateCounts(root){
     })(start);
   });
 }
-/* ---- bar grow-in: renders start at 0 and animate to their real size on
-   the next frame, so the .mbFill/.wdFill width/height transition (defined
-   in the redesign layer) actually has something to animate FROM. */
+/* ---- bar grow-in: bars sit at 0 until this section is actually scrolled
+   into view, then sweep to their real size once — fast out of the gate,
+   easing off toward the end (--ease-out) — and never re-trigger after
+   that first reveal, even if you scroll past it again. Redrawing the
+   view (switching stats chips) mounts fresh bars, so it gets its own
+   one-time reveal too. */
 function growBars(root){
   if(!root) return;
   const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const bars=[...root.querySelectorAll('[data-w], [data-h]')];
   if(!bars.length) return;
   if(reduced){ bars.forEach(b=>{ if(b.dataset.w!=null) b.style.width=b.dataset.w+'%'; if(b.dataset.h!=null) b.style.height=b.dataset.h+'%'; }); return; }
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    bars.forEach((b,i)=> setTimeout(()=>{ if(b.dataset.w!=null) b.style.width=b.dataset.w+'%'; if(b.dataset.h!=null) b.style.height=b.dataset.h+'%'; }, i*45));
-  }));
+  const reveal=()=> bars.forEach((b,i)=> setTimeout(()=>{ if(b.dataset.w!=null) b.style.width=b.dataset.w+'%'; if(b.dataset.h!=null) b.style.height=b.dataset.h+'%'; }, i*45));
+  if(!('IntersectionObserver' in window)){ requestAnimationFrame(()=>requestAnimationFrame(reveal)); return; }
+  const io=new IntersectionObserver((entries,obs)=>{
+    if(entries.some(e=>e.isIntersecting)){ reveal(); obs.disconnect(); }
+  }, { threshold:0.35 });
+  io.observe(root);
 }
 function exportCSV(){
   const rows=[['date','exercise','weight_'+STATE.unit,'reps_per_set']];
