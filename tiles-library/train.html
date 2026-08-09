@@ -388,15 +388,21 @@
   .cal .cd.off { background:rgba(239,111,106,.28); border-color:var(--fail); }
   .photoBtnRow { display:flex; gap:10px; }
   .photoBtnRow .addLift { flex:1; }
-  .ovGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:10px; }
-  .ovCard { position:relative; overflow:hidden; border:1px solid var(--hair); background:var(--e2); border-radius:var(--r-md); padding:16px 12px; text-align:center; transition:border-color var(--d2) var(--ease-out), transform var(--d2) var(--ease-out); }
+  .ovGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:10px; align-items:start; }
+  .ovCard { position:relative; overflow:hidden; border:1px solid var(--hair); background:var(--e2); border-radius:var(--r-md); padding:16px 12px; text-align:center; transition:border-color var(--d2) var(--ease-out), transform var(--d3) var(--spring), box-shadow var(--d3) var(--ease-out); }
   .ovCard::after { content:''; position:absolute; inset:0; background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%), rgba(110,231,183,.1), transparent 65%); opacity:0; transition:opacity var(--d3) var(--ease-out); pointer-events:none; }
   .ovCard:hover::after { opacity:1; }
-  .ovCard:hover { border-color:var(--hair-strong); transform:translateY(-1px); }
+  .ovCard:hover { border-color:var(--hair-strong); transform:translateY(-3px) scale(1.02); box-shadow:0 16px 30px -18px rgba(0,0,0,.6); }
   .ovNum { position:relative; z-index:1; font-family:var(--mono); font-size:24px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
   .ovNum.gold { color:var(--gold); }
   .ovNum.mint { color:var(--signal); }
   .ovLbl { position:relative; z-index:1; font-family:var(--mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:8px; }
+  .ovDesc { position:relative; z-index:1; font-size:10.5px; color:var(--muted-2); margin-top:5px; line-height:1.4; }
+  .ovDesc b { color:var(--text); font-weight:600; }
+  .ovChart { position:relative; z-index:1; display:flex; align-items:flex-end; justify-content:center; gap:2.5px; height:26px; margin-top:12px; }
+  .ovBar { width:100%; max-width:8px; height:0%; border-radius:2px 2px 0 0; background:rgba(110,231,183,.35); transition:height var(--d5) var(--ease-out); }
+  .ovBar.now { background:var(--gold); }
+  .ovCap { position:relative; z-index:1; font-family:var(--mono); font-size:8px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted-2); margin-top:6px; }
   .wdBars { display:flex; gap:8px; margin-top:18px; align-items:flex-end; height:72px; }
   .wdBar { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; }
   .wdTrack { flex:1; width:100%; display:flex; align-items:flex-end; }
@@ -1977,22 +1983,73 @@ function muscleVolumeBreakdown(){
   });
   return Object.keys(map).map(m=>({m,vol:r1(map[m])})).sort((a,b)=>b.vol-a.vol);
 }
+/* weekly-bucketed real history — no invented series, just the same dated
+   entries (finishedDates / volume-by-date / sessionDurations) the rest of
+   this file already computes, grouped into `weeks` 7-day buckets ending
+   today. Powers the mini trend chart on the stat cards that actually have
+   a meaningful week-over-week shape; cards that don't (streaks, PR count)
+   skip the chart rather than fake one. */
+function weeklyBuckets(entries, weeks, valueFn){
+  const buckets=Array.from({length:weeks},()=>0);
+  entries.forEach(e=>{
+    const ago=daysAgo(e.date);
+    if(ago<0 || ago>=weeks*7) return;
+    const w=weeks-1-Math.floor(ago/7);
+    buckets[w]+=(valueFn?valueFn(e):1);
+  });
+  return buckets;
+}
+function ovChartHTML(buckets){
+  const max=Math.max(...buckets,1);
+  return '<div class="ovChart">'+buckets.map((v,i)=>'<div class="ovBar'+(i===buckets.length-1?' now':'')+'" data-h="'+(v>0?Math.max(6,Math.round(v/max*100)):0)+'"></div>').join('')+'</div><div class="ovCap">8-week trend</div>';
+}
 function renderOverviewCards(){
   const el=$('#overviewCards'); if(!el) return;
   const totalMin=(STATE.sessionDurations||[]).reduce((a,s)=>a+(s.minutes||0),0);
-  const totalVol=Math.round(aggregateVolumeByDate().reduce((a,s)=>a+s.kg,0));
+  const volByDate=aggregateVolumeByDate();
+  const totalVol=Math.round(volByDate.reduce((a,s)=>a+s.kg,0));
+  const WEEKS=8;
+  const sessBuckets=weeklyBuckets((STATE.finishedDates||[]).map(d=>({date:d})), WEEKS);
+  const volBuckets=weeklyBuckets(volByDate, WEEKS, e=>e.kg);
+  const hrBuckets=weeklyBuckets(STATE.sessionDurations||[], WEEKS, e=>(e.minutes||0)/60);
+  const sessDelta=sessBuckets[WEEKS-1]-sessBuckets[WEEKS-2];
   const cards=[
-    { n:(STATE.finishedDates||[]).length, l:'Sessions', c:'mint' },
-    { n:r1(totalMin/60), l:'Hours trained', c:'mint' },
+    { n:(STATE.finishedDates||[]).length, l:'Sessions', c:'mint', chart:sessBuckets,
+      desc: sessDelta!==0 ? '<b>'+(sessDelta>0?'+':'')+sessDelta+'</b> vs last week' : 'same as last week' },
+    { n:r1(totalMin/60), l:'Hours trained', c:'mint', chart:hrBuckets },
     { n:currentStreak(), l:'Day streak', c:'gold' },
     { n:longestStreak(), l:'Longest streak', c:'gold' },
     { n:totalPRsAllTime(), l:'Personal records', c:'gold' },
-    { n:totalVol.toLocaleString(), l:'Total '+STATE.unit+' lifted', c:'mint' },
+    { n:totalVol.toLocaleString(), l:'Total '+STATE.unit+' lifted', c:'mint', chart:volBuckets },
     { n:r1((STATE.finishedDates||[]).length/weeksSinceStart()), l:'Sessions / week', c:'mint' },
     { n:Object.keys(STATE.exerciseNames||{}).length, l:'Exercises tracked', c:'mint' },
   ];
-  el.innerHTML = cards.map(c=>'<div class="ovCard"><div class="ovNum '+c.c+'">'+c.n+'</div><div class="ovLbl">'+c.l+'</div></div>').join('');
-  animateCounts(el);
+  el.innerHTML = cards.map(c=>'<div class="ovCard"><div class="ovNum '+c.c+'">'+c.n+'</div><div class="ovLbl">'+c.l+'</div>'
+    +(c.desc?'<div class="ovDesc">'+c.desc+'</div>':'')
+    +(c.chart?ovChartHTML(c.chart):'')
+    +'</div>').join('');
+  revealOverviewCards(el);
+}
+/* ---- reveal, once, when the cards actually scroll into view — same
+   once-only IO gate as growBars(), just driving a count-up alongside the
+   bar grow so the number and the chart land together. */
+function revealOverviewCards(el){
+  if(!el) return;
+  const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // stagger WITHIN each card's chart, not across the whole grid — three
+  // charts should sweep in together, not queue up one bar every 45ms
+  // across all of them (that dragged the last card out to ~1s late).
+  const charts=[...el.querySelectorAll('.ovChart')];
+  if(reduced){ charts.forEach(c=> c.querySelectorAll('.ovBar[data-h]').forEach(b=> b.style.height=b.dataset.h+'%')); return; }
+  const run=()=>{
+    charts.forEach(c=> c.querySelectorAll('.ovBar[data-h]').forEach((b,i)=> setTimeout(()=>{ b.style.height=b.dataset.h+'%'; }, i*45)));
+    animateCounts(el);
+  };
+  if(!('IntersectionObserver' in window)){ requestAnimationFrame(()=>requestAnimationFrame(run)); return; }
+  const io=new IntersectionObserver((entries,obs)=>{
+    if(entries.some(e=>e.isIntersecting)){ run(); obs.disconnect(); }
+  }, { threshold:0.3 });
+  io.observe(el);
 }
 /* ---- count-up: reads the number a stat card/row already rendered and
    animates it up from 0. Purely cosmetic — the final text is always the
