@@ -370,6 +370,25 @@
   .dot.off { fill:var(--muted); }
   .delta-cap { text-align:center; font-family:var(--mono); font-weight:700; font-size:14px; color:var(--signal); margin-top:8px; font-variant-numeric:tabular-nums; }
   .delta-cap .mu { color:var(--muted); }
+  /* prediction fan — three projected paths from the last real point */
+  .fan { fill:none; stroke-width:1.5; stroke-dasharray:2.5 4; pointer-events:none; }
+  .fan.high { stroke:var(--gold); }
+  .fan.mid { stroke:var(--signal); opacity:.82; }
+  .fan.low { stroke:var(--muted-2); }
+  .fanHit { fill:none; stroke:transparent; stroke-width:14; cursor:pointer; }
+  .fanDot { stroke-width:1.6; fill:var(--e1); cursor:pointer; }
+  .fanDot.high { stroke:var(--gold); }
+  .fanDot.mid { stroke:var(--signal); }
+  .fanDot.low { stroke:var(--muted-2); }
+  .fanLabel { font-family:var(--mono); font-size:8.5px; font-weight:600; }
+  .fanLabel.high { fill:var(--gold); }
+  .fanLabel.mid { fill:var(--signal); }
+  .fanLabel.low { fill:var(--muted-2); }
+  .fanCard { position:absolute; z-index:4; pointer-events:none; width:114px; background:var(--e3); border:1px solid var(--hair-strong); border-radius:var(--r-sm); padding:7px 10px; box-shadow:0 14px 30px -14px rgba(0,0,0,.6); opacity:0; }
+  .fanCard.on { opacity:1; }
+  @media (prefers-reduced-motion:no-preference){ .fanCard { transition:opacity var(--d2) var(--ease-out); } }
+  .fanCard .v { font-family:var(--mono); font-weight:700; font-size:13px; font-variant-numeric:tabular-nums; }
+  .fanCard .c { font-family:var(--mono); font-size:9.5px; color:var(--muted); margin-top:2px; }
   .stats { display:flex; margin-top:20px; padding-top:18px; border-top:1px solid var(--hair); }
   .stat { flex:1; text-align:center; }
   .stat .k { font-family:var(--mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:600; }
@@ -1895,25 +1914,90 @@ function aggregateVolumeByDate(){
   });
   return Object.keys(map).sort().map(date=>({date, kg:r1(map[date])}));
 }
+/* least-squares trend on the visible points, fanned into a High / Trend / Low
+   projection from the last real value — the "if this keeps up" line, not a promise. */
+function predictFan(list, domain){
+  if(list.length<4) return null;
+  const t=list.map(s=>-daysAgo(s.date)), k=list.map(s=>s.kg);
+  const n=t.length, tMean=t.reduce((a,b)=>a+b,0)/n, kMean=k.reduce((a,b)=>a+b,0)/n;
+  let num=0, den=0;
+  for(let i=0;i<n;i++){ num+=(t[i]-tMean)*(k[i]-kMean); den+=(t[i]-tMean)**2; }
+  if(den<1e-6) return null;
+  const slope=num/den, last=list[list.length-1];
+  const horizon=Math.max(5,Math.min(180,Math.round(domain*0.5)));
+  const slopeHi= slope>=0? slope*1.6 : slope*0.4;
+  const slopeLo= slope>=0? slope*0.4 : slope*1.6;
+  const val=s=>Math.max(0,r1(last.kg+s*horizon));
+  return { horizon, bands:[
+    { key:'high', label:'High', val:val(slopeHi) },
+    { key:'mid', label:'Trend', val:val(slope) },
+    { key:'low', label:'Low', val:val(slopeLo) },
+  ]};
+}
 function drawAggChart(list, active, unitLabel){
   const plot=$('#statsPlot'), cap=$('#statsCap');
   plot.style.aspectRatio='600/240';
   if(!list.length){ plot.innerHTML='<svg viewBox="0 0 600 240" preserveAspectRatio="none"><text class="xlab" x="300" y="120" text-anchor="middle">no data yet</text></svg>'; cap.textContent=''; return; }
-  const VB_W=600,VB_H=240,PADL=46,PADR=20,PADT=22,PADB=36;
+  const HIST_W=600,VB_H=240,PADL=46,PADR=20,PADT=22,PADB=36;
   const ws=list.map(s=>s.kg);
-  let lo=0, hi=Math.ceil(Math.max(...ws,1)/5)*5+5;
   const oldestAgo=Math.max(...list.map(s=>daysAgo(s.date)));
   const domain= active==='ALL'? Math.max(oldestAgo,1):Math.max(RANGES[active],1);
-  const X=k=>{ const f=Math.min(1,Math.max(0,1-daysAgo(k)/domain)); return PADL+f*(VB_W-PADL-PADR); };
+  const fan=predictFan(list,domain);
+  const FAN_W=fan?150:0, FAN_LABEL_W=44, VB_W=HIST_W+FAN_W;
+  let lo=0, hi=Math.ceil(Math.max(...ws,1,...(fan?fan.bands.map(b=>b.val):[]))/5)*5+5;
+  const X=k=>{ const f=Math.min(1,Math.max(0,1-daysAgo(k)/domain)); return PADL+f*(HIST_W-PADL-PADR); };
   const Y=v=>(VB_H-PADB)-(v-lo)/(hi-lo)*(VB_H-PADB-PADT);
   const step=Math.max(5,Math.ceil((hi-lo)/6/5)*5);
-  let svgs='<svg viewBox="0 0 '+VB_W+' '+VB_H+'" preserveAspectRatio="none"><defs><linearGradient id="fillAgg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--mint);stop-opacity:.22"/><stop offset="1" style="stop-color:var(--mint);stop-opacity:0"/></linearGradient></defs>';
-  for(let v=lo;v<=hi;v+=step){ svgs+='<line class="grid" x1="'+PADL+'" y1="'+Y(v)+'" x2="'+(VB_W-PADR)+'" y2="'+Y(v)+'"/><text class="axis-label" x="'+(PADL-10)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+Math.round(v)+'</text>'; }
+  const gridEndX= fan? VB_W-8 : HIST_W-PADR;
+  let svgs='<svg viewBox="0 0 '+VB_W+' '+VB_H+'" preserveAspectRatio="none"><defs><linearGradient id="fillAgg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--signal);stop-opacity:.22"/><stop offset="1" style="stop-color:var(--signal);stop-opacity:0"/></linearGradient></defs>';
+  for(let v=lo;v<=hi;v+=step){ svgs+='<line class="grid" x1="'+PADL+'" y1="'+Y(v)+'" x2="'+gridEndX+'" y2="'+Y(v)+'"/><text class="axis-label" x="'+(PADL-10)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+Math.round(v)+'</text>'; }
   const pts=list.map(s=>X(s.date)+','+Y(s.kg));
   if(list.length>1){ svgs+='<path fill="url(#fillAgg)" d="M'+X(list[0].date)+','+(VB_H-PADB)+' L'+pts.join(' L')+' L'+X(list[list.length-1].date)+','+(VB_H-PADB)+' Z"/><polyline class="line" points="'+pts.join(' ')+'"/>'; }
   list.forEach((s,i)=> svgs+='<circle class="dot" style="--i:'+i+'" cx="'+X(s.date)+'" cy="'+Y(s.kg)+'" r="4.5"/>');
-  svgs+='<text class="xlab" x="'+PADL+'" y="'+(VB_H-6)+'" text-anchor="start">'+fmtDate(list[0].date)+'</text><text class="xlab" x="'+(VB_W-PADR)+'" y="'+(VB_H-6)+'" text-anchor="end">today</text></svg>';
-  plot.innerHTML=svgs;
+  svgs+='<text class="xlab" x="'+PADL+'" y="'+(VB_H-6)+'" text-anchor="start">'+fmtDate(list[0].date)+'</text><text class="xlab" x="'+(HIST_W-PADR)+'" y="'+(VB_H-6)+'" text-anchor="end">today</text>';
+  if(fan){
+    const anchorX=X(list[list.length-1].date), anchorY=Y(list[list.length-1].kg), fanEndX=VB_W-FAN_LABEL_W;
+    svgs+='<g class="fanGroup">';
+    fan.bands.forEach(b=>{
+      const ty=Y(b.val), cx=anchorX+(fanEndX-anchorX)*0.5, cy=anchorY+(ty-anchorY)*0.2;
+      const d='M'+anchorX+','+anchorY+' Q'+cx+','+cy+' '+fanEndX+','+ty;
+      svgs+='<path class="fanHit" d="'+d+'" data-val="'+b.val+'" data-label="'+b.label+'" data-cls="'+b.key+'"/>';
+      svgs+='<path class="fan '+b.key+'" d="'+d+'"/>';
+    });
+    /* labels can crowd when the trend is shallow — decouple label Y from dot Y
+       and declutter top-to-bottom, since bands are already high→low sorted */
+    const MIN_GAP=10;
+    const labelYs=fan.bands.map(b=>Y(b.val));
+    for(let i=1;i<labelYs.length;i++){ if(labelYs[i]-labelYs[i-1]<MIN_GAP) labelYs[i]=labelYs[i-1]+MIN_GAP; }
+    const maxLabelY=VB_H-PADB-2;
+    if(labelYs[labelYs.length-1]>maxLabelY){ const over=labelYs[labelYs.length-1]-maxLabelY; for(let i=0;i<labelYs.length;i++) labelYs[i]-=over; }
+    fan.bands.forEach((b,i)=>{
+      const ty=Y(b.val);
+      svgs+='<circle class="fanDot '+b.key+'" cx="'+fanEndX+'" cy="'+ty+'" r="3.4" data-val="'+b.val+'" data-label="'+b.label+'" data-cls="'+b.key+'"/>';
+      svgs+='<text class="fanLabel '+b.key+'" x="'+(fanEndX+7)+'" y="'+(labelYs[i]+3)+'">'+Math.round(b.val)+'</text>';
+    });
+    svgs+='<text class="xlab" x="'+fanEndX+'" y="'+(VB_H-6)+'" text-anchor="end">≈'+fan.horizon+'d</text></g>';
+  }
+  svgs+='</svg>';
+  plot.innerHTML=svgs+(fan?'<div class="fanCard" id="fanCard"><div class="v" id="fanCardV"></div><div class="c" id="fanCardC"></div></div>':'');
+  if(fan){
+    const card=plot.querySelector('#fanCard'), cv=plot.querySelector('#fanCardV'), cc=plot.querySelector('#fanCardC');
+    plot.querySelectorAll('[data-cls]').forEach(t=>{
+      const show=()=>{
+        cv.textContent=t.dataset.val+' '+STATE.unit;
+        cv.style.color=t.dataset.cls==='high'?'var(--gold)':t.dataset.cls==='low'?'var(--muted-2)':'var(--signal)';
+        cc.textContent=t.dataset.label+' · in ~'+fan.horizon+'d';
+        const rect=plot.getBoundingClientRect();
+        const px=(parseFloat(t.getAttribute('cx')||(VB_W-FAN_LABEL_W))/VB_W)*rect.width;
+        const py=(parseFloat(t.getAttribute('cy')||Y(+t.dataset.val))/VB_H)*rect.height;
+        card.style.left=Math.max(4,px-124)+'px';
+        card.style.top=Math.max(4,Math.min(rect.height-46,py-20))+'px';
+        card.classList.add('on');
+      };
+      t.addEventListener('pointerenter',show);
+      t.addEventListener('pointerleave',()=>card.classList.remove('on'));
+    });
+  }
   const d= list.length>=2? r1(list[list.length-1].kg-list[0].kg):0;
   cap.innerHTML= list.length>=2? (d>=0?'+':'')+d+' '+unitLabel+' <span class="mu">· '+(active==='ALL'?'all time':'in '+active)+'</span>' : 'one data point here';
 }
