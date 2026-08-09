@@ -48,13 +48,21 @@
   .num,.tab { font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; }
   button:focus-visible, a:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline:2px solid var(--signal); outline-offset:2px; border-radius:6px; }
 
-  /* ==== SIGNAL FIELD — a live canvas node graph, replaces the old
-     mountains svg. A sparse constellation drifts and occasionally
-     threads a pulse between two nodes when data changes (see
-     pulseSignalField()). Ambient, never distracting: low opacity,
-     capped particle count, pauses under reduced-motion. ============ */
-  #signalField { position:fixed; inset:0; z-index:-1; pointer-events:none; width:100%; height:100%; opacity:.55; }
-  #signalField.paused { opacity:.28; }
+  /* ── the original Vitality backdrop — mountains / glass atmosphere /
+        particles, fully self-contained (no external file). Kept as-is
+        per request while the rest of the tile moved to the new system. */
+  #vt-backdrop { position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden; background:var(--e0); }
+  #vt-backdrop .wb-atmosphere { position:absolute; inset:0; pointer-events:none; background:
+    radial-gradient(60% 50% at 50% 40%, rgba(110,231,183,.18) 0%, rgba(110,231,183,.06) 32%, rgba(110,231,183,0) 66%),
+    radial-gradient(34% 26% at 50% 44%, rgba(255,226,181,.08) 0%, rgba(255,226,181,0) 72%),
+    radial-gradient(130% 90% at 50% 120%, rgba(14,38,30,.85) 0%, rgba(0,0,0,1) 72%); }
+  #vt-backdrop .wb-mountains { position:absolute; left:0; right:0; bottom:0; height:42vh; min-height:240px; pointer-events:none; }
+  #vt-backdrop .wb-mountains svg { width:100%; height:100%; display:block; }
+  #vt-backdrop .wb-mist { position:absolute; left:0; right:0; bottom:30vh; height:24vh; pointer-events:none; background:linear-gradient(to top, rgba(0,0,0,0) 0%, rgba(110,231,183,.06) 40%, rgba(0,0,0,0) 100%); filter:blur(8px); }
+  #vt-backdrop .wb-particles { position:absolute; inset:0; pointer-events:none; }
+  #vt-backdrop .wb-particles span { position:absolute; width:1.5px; height:1.5px; background:rgba(233,239,233,.55); border-radius:50%; box-shadow:0 0 4px rgba(167,243,208,.35); animation:vtDrift linear infinite; }
+  @keyframes vtDrift { 0%{transform:translate3d(0,0,0);opacity:0;} 8%{opacity:.7;} 92%{opacity:.5;} 100%{transform:translate3d(var(--dx,12px),var(--dy,-100vh),0);opacity:0;} }
+  @media (prefers-reduced-motion:reduce) { #vt-backdrop .wb-particles span { animation:none; } }
 
   /* ==== STATUS RAIL — pinned telemetry strip, the spatial anchor the
      old design lacked (everything used to scroll away). ============ */
@@ -518,12 +526,16 @@
     .sheet, .pop, .scrim, .menuPop { animation-duration:.01ms !important; }
     .pill.shimmer, .rulerFill.pulse, .restbar.over .restMid, .skeleton-shimmer::after { animation:none !important; }
     .ex::after, .ovCard::after, .photoCard::after { transition:none !important; }
-    #signalField { display:none; }
   }
 </style>
 </head>
 <body>
-<canvas id="signalField" aria-hidden="true"></canvas>
+<div id="vt-backdrop" aria-hidden="true">
+  <div class="wb-atmosphere"></div>
+  <div class="wb-mountains"><svg viewBox="0 0 1600 420" preserveAspectRatio="none"><defs><linearGradient id="vt-mt-far" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0d1a17" stop-opacity="0"/><stop offset="55%" stop-color="#0d1a17" stop-opacity=".55"/><stop offset="100%" stop-color="#0d1a17" stop-opacity=".95"/></linearGradient><linearGradient id="vt-mt-near" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#050a09" stop-opacity=".4"/><stop offset="60%" stop-color="#050a09" stop-opacity=".95"/><stop offset="100%" stop-color="#050a09" stop-opacity="1"/></linearGradient></defs><path d="M0,300 L120,230 L210,260 L320,180 L430,220 L560,150 L680,210 L820,170 L960,220 L1100,180 L1240,240 L1380,200 L1500,250 L1600,220 L1600,420 L0,420 Z" fill="url(#vt-mt-far)"/><path d="M0,360 L100,320 L220,340 L340,290 L460,330 L590,300 L720,340 L860,310 L1000,350 L1140,310 L1280,355 L1420,320 L1540,360 L1600,340 L1600,420 L0,420 Z" fill="url(#vt-mt-near)"/></svg></div>
+  <div class="wb-mist"></div>
+  <div class="wb-particles"></div>
+</div>
 
 <div class="rail" id="statusRail">
   <div class="railDate" id="railDate">—</div>
@@ -769,7 +781,7 @@ function renderProgress(){
   const fill=$('#rulerFill'), needle=$('#rulerNeedle');
   const prevPct=parseFloat(fill.dataset.pct||'0');
   fill.style.width=pct+'%'; needle.style.left=pct+'%';
-  if(pct>prevPct){ fill.classList.remove('pulse'); void fill.offsetWidth; fill.classList.add('pulse'); pulseSignalField(); }
+  if(pct>prevPct){ fill.classList.remove('pulse'); void fill.offsetWidth; fill.classList.add('pulse'); }
   fill.dataset.pct=String(pct);
   const lbl=$('#plabel');
   if(!lbl.querySelector('#plabelNum')) lbl.innerHTML='<b class="num" id="plabelNum">0</b> of <span id="plabelTotal">0</span> logged';
@@ -2055,17 +2067,16 @@ function makeConstellation(canvas, opts){
   };
 }
 
-/* ---- the ambient backdrop: one sparse constellation across the whole
-   viewport, standing in for the old mountains svg + drifting dots ---- */
-let signalField=null;
-function initSignalField(){
-  const canvas=$('#signalField'); if(!canvas) return;
-  const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const count = window.innerWidth<640 ? 10 : 16;
-  signalField = makeConstellation(canvas, { count, startCollapsed:false });
-  if(reduced) canvas.classList.add('paused');
+/* ---- inlined backdrop particles (self-contained) ------------------ */
+function spawnParticles(root){
+  if(!root) return;
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const N = window.innerWidth<640?10:18;
+  for(let i=0;i<N;i++){ const s=document.createElement('span'); const dur=18+Math.random()*22, size=1+Math.random()*1.2;
+    s.style.left=(Math.random()*100)+'%'; s.style.top=(60+Math.random()*40)+'vh'; s.style.width=s.style.height=size+'px';
+    s.style.animationDuration=dur+'s'; s.style.animationDelay=(-Math.random()*dur)+'s';
+    s.style.setProperty('--dx',(Math.random()*30-15)+'px'); s.style.setProperty('--dy',(-(60+Math.random()*50))+'vh'); root.appendChild(s); }
 }
-function pulseSignalField(){ if(signalField) signalField.burst(); }
 
 /* ---- boot: load state from the dashboard bridge, THEN render -------
    window.Vitality is injected by the dashboard — we never define it. load()
@@ -2095,7 +2106,7 @@ function pulseSignalField(){ if(signalField) signalField.burst(); }
   wireCardGlow($('#exwrap'), '.ex');
   wireCardGlow($('#overviewCards'), '.ovCard');
   wireCardGlow($('#photoGallery'), '.photoCard');
-  initSignalField();
+  spawnParticles(document.querySelector('#vt-backdrop .wb-particles'));
   initFabConstellation();
 })();
 </script>
