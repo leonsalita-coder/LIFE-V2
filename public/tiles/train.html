@@ -93,10 +93,14 @@
   .daydots .dd.pr { background:var(--gold); border-color:var(--gold); }
   .daydots .dd.miss { border-color:var(--fail); }
 
-  .dayhead { display:flex; align-items:flex-end; gap:12px; margin-top:14px; }
   .daytitle { font-family:var(--sans); font-weight:800; font-size:39px; line-height:.96; letter-spacing:-0.03em; text-shadow:0 2px 28px rgba(110,231,183,.16); }
-  .dayheadRight { margin-left:auto; display:flex; align-items:center; gap:10px; }
-  .settingsBtn { width:32px; height:32px; flex:none; align-self:center; margin-bottom:3px; border-radius:50%; border:2px solid var(--hair-strong); border-bottom-width:4px; transform-origin:bottom; background:var(--e2); color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:color var(--d2) var(--ease-out), border-color var(--d2) var(--ease-out), transform var(--d1) var(--spring), border-bottom-width var(--d1) var(--spring); }
+  /* ==== top bar — thin tracked wordmark + sparse icon chrome ========= */
+  .trainBar { display:flex; align-items:center; justify-content:space-between; }
+  .wordmark { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); }
+  .wordmark .wmDot { color:var(--hair-strong); margin:0 1px; }
+  .wordmark #sessionNum { color:var(--text); }
+  .chrome { display:flex; align-items:center; gap:10px; }
+  .settingsBtn { width:32px; height:32px; flex:none; align-self:center; border-radius:50%; border:2px solid var(--hair-strong); border-bottom-width:4px; transform-origin:bottom; background:var(--e2); color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:color var(--d2) var(--ease-out), border-color var(--d2) var(--ease-out), transform var(--d1) var(--spring), border-bottom-width var(--d1) var(--spring); }
   .settingsBtn:hover { color:var(--text); border-color:var(--muted); }
   .settingsBtn:active { transform:scaleY(.9) translateY(1px); border-bottom-width:2px; }
   .settingsBtn svg { width:17px; height:17px; }
@@ -156,21 +160,27 @@
   .theme-switch__checkbox:checked + .theme-switch__container .theme-switch__clouds { bottom:-4.062em; }
   .theme-switch__checkbox:checked + .theme-switch__container .theme-switch__stars-container { top:50%; transform:translateY(-50%); }
 
-  /* ==== PROGRESS RULER — a tick-mark instrument, not a colored bar.
-     Ticks light up left-to-right as sets log; a bright index line marks
-     the live boundary. Built with a CSS mask, no per-tick DOM needed. */
-  .progress { margin-top:20px; }
-  .progress { display:flex; align-items:center; gap:16px; }
-  .progRing { position:relative; width:72px; height:72px; flex:none; }
+  /* ==== hero — one confident ring + headline, Whoop register ========= */
+  .heroCap { display:flex; align-items:center; gap:8px; margin-top:22px; }
+  .heroRow { display:flex; align-items:center; gap:18px; margin-top:14px; }
+  .progRing { position:relative; width:88px; height:88px; flex:none; }
   .progRing svg { width:100%; height:100%; transform:rotate(-90deg); }
   .prTrack { fill:none; stroke:var(--hair-strong); stroke-width:6; }
-  .prFill { fill:none; stroke:var(--signal); stroke-width:6; stroke-linecap:round; stroke-dasharray:188.5; stroke-dashoffset:188.5; transition:stroke-dashoffset var(--d4) var(--ease-momentum); }
+  .prFill { fill:none; stroke:var(--signal); stroke-width:6; stroke-linecap:round; stroke-dasharray:238.8; stroke-dashoffset:238.8; transition:stroke-dashoffset var(--d4) var(--ease-momentum); }
   .prFill.pulse { animation:rulerPulse .6s var(--ease-out); }
   @keyframes rulerPulse { 0% { filter:brightness(1); } 35% { filter:brightness(1.6); } 100% { filter:brightness(1); } }
-  .prPct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--sans); font-weight:800; font-size:17px; letter-spacing:-0.02em; color:var(--text); }
-  .progMeta { flex:1; min-width:0; }
-  .plabel { font-family:var(--mono); font-size:12.5px; color:var(--muted); margin-top:12px; letter-spacing:.01em; }
+  .prCenter { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+  .prPct { font-family:var(--sans); font-weight:800; font-size:19px; letter-spacing:-0.02em; color:var(--text); line-height:1; }
+  .heroText { flex:1; min-width:0; }
+  .plabel { font-family:var(--mono); font-size:8.5px; color:var(--muted); letter-spacing:.03em; text-align:center; line-height:1.4; }
   .plabel b { color:var(--text); font-weight:700; }
+  .heroSub { font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:9px; letter-spacing:.01em; }
+  .heroSub b { color:var(--signal); font-weight:700; }
+  .statStrip { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:20px; }
+  .miniCard { background:var(--e2); border-radius:var(--r-md); padding:13px 12px; }
+  .miniCard b { display:block; font-family:var(--sans); font-weight:800; font-size:19px; letter-spacing:-.02em; color:var(--signal); }
+  .miniCard b.gold { color:var(--gold); }
+  .miniCard span { display:block; font-family:var(--mono); font-size:8.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-top:4px; }
   .odo { display:inline-flex; }
   .odoDigit { display:inline-block; overflow:hidden; height:1em; vertical-align:top; }
   .odoDigit .odoReel { display:block; transition:transform var(--d4) var(--ease-momentum); }
@@ -291,8 +301,18 @@
   .pillReset svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
   .pillReset:hover { opacity:1; background:var(--e4); }
   .pillReset:active { transform:scale(.85); }
-  .pill.done { background:rgba(110,231,183,.07); border-color:rgba(110,231,183,.25); border-left-color:var(--signal); }
-  .pill.done .pillValue, .pill.done .pillInput { color:var(--signal); }
+  /* done — a solid fill instead of a tint (Hevy's completed-row read),
+     so every ink color inside it has to flip to the dark signal-ink. */
+  .pill.done { background:var(--signal); border-color:color-mix(in srgb, var(--signal) 60%, black); border-left-color:color-mix(in srgb, var(--signal) 60%, black); }
+  .pill.done .pillIdx { color:color-mix(in srgb, var(--signal-ink) 55%, transparent); }
+  .pill.done .pillValue, .pill.done .pillInput { color:var(--signal-ink); }
+  .pill.done .pillUnit, .pill.done .pillTimes { color:color-mix(in srgb, var(--signal-ink) 60%, transparent); }
+  .pill.done .pillStatus, .pill.done .pillPr { color:var(--signal-ink); }
+  .pill.done .pillStatus .sub { color:color-mix(in srgb, var(--signal-ink) 65%, transparent); }
+  .pill.done .pillDrop { border-color:color-mix(in srgb, var(--signal-ink) 35%, transparent); color:var(--signal-ink); }
+  .pill.done .pillDrop:hover { background:color-mix(in srgb, var(--signal-ink) 10%, transparent); }
+  .pill.done .pillReset { color:color-mix(in srgb, var(--signal-ink) 70%, transparent); }
+  .pill.done .pillReset:hover { background:color-mix(in srgb, var(--signal-ink) 12%, transparent); }
   .pill.done .pillHit { display:none; }
   .pill.failed { background:rgba(239,111,106,.06); border-color:rgba(239,111,106,.25); border-left-color:var(--fail); }
   .pill.failed .pillIdx, .pill.failed .pillStatus { color:var(--fail); }
@@ -692,11 +712,9 @@
 <div class="shell">
 <div class="starterTag">✦ starter — the value is what you build · the videos show how</div>
   <div class="sheet" id="sheet">
-    <div class="eyebrow" style="display:flex;align-items:center;justify-content:space-between">Today's session<span id="streakPill" class="streakPill"></span></div>
-    <div class="daydots" id="daydots"></div>
-    <div class="dayhead">
-      <h1 class="daytitle" id="daytitle">Today</h1>
-      <div class="dayheadRight">
+    <div class="trainBar">
+      <div class="wordmark">Train <span class="wmDot">·</span> Session <span id="sessionNum">1</span></div>
+      <div class="chrome">
         <button class="settingsBtn" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
         <div class="bouncyRow">
           <span class="bouncyLabel" id="restLabel">Rest day</span>
@@ -706,10 +724,21 @@
         </div>
       </div>
     </div>
-    <div class="progress" id="progress">
-      <div class="progRing"><svg viewBox="0 0 72 72"><circle class="prTrack" cx="36" cy="36" r="30"/><circle class="prFill" id="prFill" cx="36" cy="36" r="30"/></svg><div class="prPct" id="prPct">0%</div></div>
-      <div class="progMeta"><div class="plabel" id="plabel"></div></div>
+    <div class="daydots" id="daydots"></div>
+    <div class="heroCap">Today's session<span id="streakPill" class="streakPill"></span></div>
+    <div class="heroRow">
+      <div class="progress" id="progress">
+        <div class="progRing">
+          <svg viewBox="0 0 88 88"><circle class="prTrack" cx="44" cy="44" r="38"/><circle class="prFill" id="prFill" cx="44" cy="44" r="38"/></svg>
+          <div class="prCenter"><div class="prPct" id="prPct">0%</div><div class="plabel" id="plabel"></div></div>
+        </div>
+      </div>
+      <div class="heroText">
+        <h1 class="daytitle" id="daytitle">Today</h1>
+        <div class="heroSub" id="heroSub"></div>
+      </div>
     </div>
+    <div class="statStrip" id="miniStats"></div>
     <div class="wcSection" id="warmupSlot"></div>
     <div class="exwrap" id="exwrap"></div>
     <div class="wcSection" id="cooldownSlot"></div>
@@ -880,7 +909,30 @@ function dotsIcon(){ return '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="
 function gripIcon(){ return '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>'; }
 
 function render(){
-  renderDots(); renderHead(); renderProgress(); renderBody(); renderStreak(); renderRail(); saveState();
+  renderDots(); renderHead(); renderProgress(); renderBody(); renderStreak(); renderRail(); renderHeroExtras(); saveState();
+}
+/* ---- hero extras: session number, the streak/volume caption under the
+   headline, and the 3-up mini stat strip — all real arithmetic over data
+   already collected (same rule as the Overview cards), nothing invented. */
+function renderHeroExtras(){
+  const fd=STATE.finishedDates||[];
+  const numEl=$('#sessionNum');
+  if(numEl) numEl.textContent = String(fd.includes(today) ? fd.length : fd.length+1);
+  const volByDate=aggregateVolumeByDate();
+  const streak=currentStreak();
+  const sub=$('#heroSub');
+  if(sub){
+    const vol7=Math.round(volByDate.filter(s=>daysAgo(s.date)<=6).reduce((a,s)=>a+s.kg,0));
+    sub.innerHTML = '<b>'+streak+'</b>-day streak &nbsp;·&nbsp; <b>'+vol7.toLocaleString()+'</b> '+STATE.unit+' last 7 days';
+  }
+  const ms=$('#miniStats');
+  if(ms){
+    const totalVol=Math.round(volByDate.reduce((a,s)=>a+s.kg,0));
+    ms.innerHTML =
+      '<div class="miniCard"><b>'+fd.length+'</b><span>Sessions</span></div>'
+      + '<div class="miniCard"><b class="gold">'+streak+'</b><span>Streak</span></div>'
+      + '<div class="miniCard"><b>'+(totalVol>=1000?(totalVol/1000).toFixed(1)+'k':totalVol)+'</b><span>'+STATE.unit+' lifted</span></div>';
+  }
 }
 /* ---- rail: a pinned telemetry strip, always visible while scrolling - */
 function sessionVolume(session){
@@ -935,7 +987,7 @@ function renderProgress(){
   if(session.off){ prog.style.display='none'; return; }
   prog.style.display='';
   const t=sessionTotals(session); const pct = t.total? Math.round(t.logged/t.total*100):0;
-  const fill=$('#prFill'); const CIRC=188.5;
+  const fill=$('#prFill'); const CIRC=238.8;
   const prevPct=parseFloat(fill.dataset.pct||'0');
   fill.style.strokeDashoffset=String(CIRC*(1-pct/100));
   $('#prPct').textContent=pct+'%';
