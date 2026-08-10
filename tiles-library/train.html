@@ -437,9 +437,10 @@
   .popX:hover { color:var(--text); }
   .popX:active { transform:scale(.85); }
 
-  .range { display:flex; gap:3px; justify-content:center; background:var(--e1); border:1px solid var(--hair); border-radius:12px; padding:4px; margin:20px auto 0; width:fit-content; }
-  .range button { background:none; border:none; color:var(--muted); font-family:var(--sans); font-size:13px; font-weight:600; padding:8px 14px; border-radius:9px; cursor:pointer; transform-origin:bottom; transition:color var(--d2), background var(--d3), transform var(--d1) var(--spring); }
-  .range button.on { background:var(--signal); color:var(--signal-ink); }
+  .range { position:relative; display:flex; gap:3px; justify-content:center; background:var(--e1); border:1px solid var(--hair); border-radius:12px; padding:4px; margin:20px auto 0; width:fit-content; }
+  .rangeInd { position:absolute; top:4px; bottom:4px; left:0; width:0; background:var(--signal); border-radius:9px; z-index:1; }
+  .range button { position:relative; z-index:2; background:none; border:none; color:var(--muted); font-family:var(--sans); font-size:13px; font-weight:600; padding:8px 14px; border-radius:9px; cursor:pointer; transform-origin:bottom; transition:color var(--d2), transform var(--d1) var(--spring); }
+  .range button.on { color:var(--signal-ink); }
   .range button:active { transform:scaleY(.9); }
   .chart-card { margin-top:18px; border:1px solid var(--hair); border-radius:var(--r-lg); padding:18px 16px 14px; background:var(--e1); }
   .plot { position:relative; width:100%; aspect-ratio:600/240; }
@@ -1410,10 +1411,47 @@ function openHistory(e){
     + '<table class="hist"><thead><tr><th>Date</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Progress</th></tr></thead><tbody id="hbody"></tbody></table>',
     ()=>{ drawHistory(e, active, v=>{active=v;}); });
 }
+/* ---- segmented control — one shared pill slides under the active
+   segment instead of each button flashing its own background. The
+   buttons still get fully rebuilt on every call (same as everything
+   else in this file), so the indicator uses a FLIP: read its OLD
+   screen position from the outgoing DOM before wiping it, then restart
+   the fresh one there and transition to its natural spot. Double rAF —
+   a single rAF here gets coalesced with the reflow and the browser just
+   skips straight to the end state (same bug as the checklist scribble). */
+function renderRangeControl(rangeEl, activeKey, onSelect){
+  if(!rangeEl) return;
+  const reduced=prefersReducedMotion();
+  const prevInd=rangeEl.querySelector('.rangeInd');
+  const prevRect = prevInd ? prevInd.getBoundingClientRect() : null;
+  const containerRectBefore = prevInd ? rangeEl.getBoundingClientRect() : null;
+  rangeEl.innerHTML='<div class="rangeInd"></div>'+Object.keys(RANGES).map(k=>'<button class="'+(k===activeKey?'on':'')+'" data-r="'+k+'">'+k+'</button>').join('');
+  const ind=rangeEl.querySelector('.rangeInd');
+  rangeEl.querySelectorAll('button').forEach(b=> b.onclick=()=> onSelect(b.dataset.r));
+  const activeBtn=rangeEl.querySelector('button.on');
+  if(!activeBtn || !ind) return;
+  const place=()=>{
+    const r=activeBtn.getBoundingClientRect(), cr=rangeEl.getBoundingClientRect();
+    ind.style.width=r.width+'px';
+    ind.style.transform='translateX('+(r.left-cr.left)+'px)';
+  };
+  if(prevRect && containerRectBefore && prevRect.width>0 && !reduced){
+    ind.style.transition='none';
+    ind.style.width=prevRect.width+'px';
+    ind.style.transform='translateX('+(prevRect.left-containerRectBefore.left)+'px)';
+    void ind.offsetWidth;
+    requestAnimationFrame(()=>{
+      ind.style.transition='transform .32s var(--spring), width .32s var(--spring)';
+      requestAnimationFrame(place);
+    });
+  } else {
+    ind.style.transition='none';
+    place();
+  }
+}
 function drawHistory(e, active, setActive){
   const rangeEl=$('#hrange');
-  rangeEl.innerHTML=Object.keys(RANGES).map(k=>'<button class="'+(k===active?'on':'')+'" data-r="'+k+'">'+k+'</button>').join('');
-  rangeEl.querySelectorAll('button').forEach(b=> b.onclick=()=>{ setActive(b.dataset.r); drawHistory(e, b.dataset.r, setActive); });
+  renderRangeControl(rangeEl, active, r=>{ setActive(r); drawHistory(e, r, setActive); });
   const all=histFor(e).slice().sort((a,b)=>a.date.localeCompare(b.date));
   const list=all.filter(s=>daysAgo(s.date)<=RANGES[active]);
   drawChart(e, list, active);
@@ -2183,8 +2221,7 @@ function drawStatsSection(){
   const showRange = statsView.id==='__volume' || (!statsView.id.startsWith('__'));
   rangeEl.style.display = showRange ? '' : 'none';
   if(showRange){
-    rangeEl.innerHTML=Object.keys(RANGES).map(k=>'<button class="'+(k===statsRangeKey?'on':'')+'" data-r="'+k+'">'+k+'</button>').join('');
-    rangeEl.querySelectorAll('button').forEach(b=> b.onclick=()=>{ statsRangeKey=b.dataset.r; drawStatsSection(); });
+    renderRangeControl(rangeEl, statsRangeKey, r=>{ statsRangeKey=r; drawStatsSection(); });
   }
   if(statsView.id==='__sessions') drawSessionsCal();
   else if(statsView.id==='__volume') drawVolumeChart();
