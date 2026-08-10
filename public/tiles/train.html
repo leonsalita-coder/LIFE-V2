@@ -386,10 +386,25 @@
   .chip:hover { border-color:var(--hair-strong); color:var(--text); }
   .chip:active { transform:scaleY(.92) translateY(1px); border-bottom-width:1px; }
   .chip.on { border-color:color-mix(in srgb, var(--signal) 55%, black); background:var(--signal); color:var(--signal-ink); }
-  .cal { display:flex; flex-wrap:wrap; gap:5px; padding:6px 2px; }
+  .calWrap { display:flex; gap:6px; align-items:flex-start; overflow-x:auto; padding:6px 2px 4px; -webkit-overflow-scrolling:touch; }
+  .calDayLbls { display:grid; grid-template-rows:repeat(7,13px); gap:3px; margin-top:19px; flex:none; }
+  .calDayLbls span { font-family:var(--mono); font-size:9px; color:var(--muted); line-height:13px; }
+  .calMain { flex:none; }
+  .calMonths { display:grid; grid-template-columns:repeat(53,13px); gap:3px; margin-bottom:4px; height:12px; }
+  .calMonths span { font-family:var(--mono); font-size:9px; color:var(--muted); white-space:nowrap; overflow:visible; }
+  .cal { display:grid; grid-template-columns:repeat(53,13px); grid-template-rows:repeat(7,13px); grid-auto-flow:column; gap:3px; }
   .cal .cd { width:13px; height:13px; border-radius:3px; background:var(--e2); border:1px solid var(--hair); }
-  .cal .cd.on { background:var(--signal); border-color:var(--signal); }
-  .cal .cd.off { background:rgba(239,111,106,.28); border-color:var(--fail); }
+  .cal .cd.pad { background:transparent; border-color:transparent; }
+  .cal .cd.l1 { background:color-mix(in srgb, var(--signal) 26%, var(--e2)); border-color:transparent; }
+  .cal .cd.l2 { background:color-mix(in srgb, var(--signal) 50%, var(--e2)); border-color:transparent; }
+  .cal .cd.l3 { background:color-mix(in srgb, var(--signal) 74%, var(--e2)); border-color:transparent; }
+  .cal .cd.l4 { background:var(--signal); border-color:var(--signal); }
+  .calLegend { display:flex; align-items:center; gap:4px; margin-top:10px; font-family:var(--mono); font-size:9px; color:var(--muted); }
+  .calLegend i { width:10px; height:10px; border-radius:3px; display:inline-block; font-style:normal; background:var(--e2); border:1px solid var(--hair); }
+  .calLegend i.l1 { background:color-mix(in srgb, var(--signal) 26%, var(--e2)); border-color:transparent; }
+  .calLegend i.l2 { background:color-mix(in srgb, var(--signal) 50%, var(--e2)); border-color:transparent; }
+  .calLegend i.l3 { background:color-mix(in srgb, var(--signal) 74%, var(--e2)); border-color:transparent; }
+  .calLegend i.l4 { background:var(--signal); border-color:var(--signal); }
   .photoBtnRow { display:flex; gap:10px; }
   .photoBtnRow .addLift { flex:1; }
   .ovGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:10px; align-items:start; }
@@ -2408,20 +2423,52 @@ function drawExerciseChart(id){
   const best=list.length?Math.max(...list.map(s=>s.kg)):0;
   $('#statsRow').innerHTML='<div class="stat"><div class="k">Sessions</div><div class="v">'+list.length+'</div></div><div class="stat"><div class="k">Best</div><div class="v gold">'+best+' '+STATE.unit+'</div></div><div class="stat"><div class="k">Lift</div><div class="v" style="font-size:14px">'+escapeHtml((STATE.exerciseNames&&STATE.exerciseNames[id])||id)+'</div></div>';
 }
+const CAL_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+/* full year, GitHub-contribution style — 53 week-columns x 7 day-rows, colored
+   by that day's training volume (not just on/off) so a heavy day reads
+   differently from a light one. Both the month-label row and the cell grid
+   use the identical 53x13px column template so they line up exactly. */
 function drawSessionsCal(){
   const plot=$('#statsPlot'), cap=$('#statsCap');
   plot.style.aspectRatio='auto';
-  const days=84;
   const set=new Set(STATE.finishedDates||[]);
-  let cells='';
-  for(let i=days-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=ymd(d); cells+='<span class="cd'+(set.has(k)?' on':'')+'" title="'+k+'"></span>'; }
+  const volByDate={}; aggregateVolumeByDate().forEach(s=>{ volByDate[s.date]=s.kg; });
+  const today0=new Date(); today0.setHours(0,0,0,0);
+  const oldest=new Date(today0); oldest.setDate(oldest.getDate()-364);
+  const start=new Date(oldest); start.setDate(start.getDate()-start.getDay());
+  const maxVol=Math.max(1,...Object.values(volByDate));
+  const level=v=> v<=0?0:Math.min(4,Math.ceil(v/maxVol*4));
+  const weeks=[]; const monthMarks=[]; let lastMonth=-1;
+  const cursor=new Date(start);
+  for(let w=0; w<53; w++){
+    const col=[];
+    for(let d=0; d<7; d++){
+      const key=ymd(cursor);
+      const inRange = cursor>=oldest && cursor<=today0;
+      if(inRange && cursor.getMonth()!==lastMonth){ lastMonth=cursor.getMonth(); monthMarks[w]=CAL_MONTHS[lastMonth]; }
+      col.push({key, inRange, vol:volByDate[key]||0});
+      cursor.setDate(cursor.getDate()+1);
+    }
+    weeks.push(col);
+  }
+  const monthsRow='<div class="calMonths">'+Array.from({length:53},(_,w)=>'<span>'+(monthMarks[w]||'')+'</span>').join('')+'</div>';
+  const cells=weeks.flat().map(c=> c.inRange
+    ? '<span class="cd l'+level(c.vol)+'" title="'+c.key+(c.vol?' · '+Math.round(c.vol)+' '+STATE.unit:set.has(c.key)?' · trained':' · rest')+'"></span>'
+    : '<span class="cd pad"></span>'
+  ).join('');
+  const legend='<div class="calLegend">Less<i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>More</div>';
   const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const counts=weekdayCounts(); const maxC=Math.max(...counts,1);
   const bars='<div class="wdBars">'+counts.map((c,i)=>'<div class="wdBar"><div class="wdTrack"><div class="wdFill" data-h="'+Math.max(3,Math.round(c/maxC*100))+'" style="height:0%"></div></div><span class="wdLbl">'+WD[i]+'</span></div>').join('')+'</div>';
-  plot.innerHTML='<div class="cal">'+cells+'</div>'+bars;
+  plot.innerHTML='<div class="calWrap">'
+      + '<div class="calDayLbls"><span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span></div>'
+      + '<div class="calMain">'+monthsRow+'<div class="cal">'+cells+'</div></div>'
+    + '</div>'
+    + legend + bars;
   growBars(plot);
+  const daysTracked=365;
   const bestDay=WD[counts.indexOf(Math.max(...counts))];
-  cap.innerHTML=[...set].filter(k=>daysAgo(k)<=days).length+' session(s) in the last '+days+' days <span class="mu">· strongest day '+bestDay+'</span>';
+  cap.innerHTML=[...set].filter(k=>daysAgo(k)<=daysTracked).length+' session(s) in the last year <span class="mu">· strongest day '+bestDay+'</span>';
   $('#statsRow').innerHTML='<div class="stat"><div class="k">Streak</div><div class="v gold">'+currentStreak()+'</div></div><div class="stat"><div class="k">Total sessions</div><div class="v">'+set.size+'</div></div><div class="stat"><div class="k">Lifts tracked</div><div class="v">'+Object.keys(STATE.exerciseNames||{}).length+'</div></div>';
 }
 
