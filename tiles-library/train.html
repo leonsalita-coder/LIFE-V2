@@ -19,7 +19,7 @@
   :root {
     /* elevation — true-black base, five graphite steps up */
     --e0:#030304; --e1:#0a0a0d; --e2:#101013; --e3:#17171b; --e4:#1f1f24;
-    --hair:rgba(255,255,255,.07); --hair-strong:rgba(255,255,255,.14);
+    --hair:rgba(255,255,255,.05); --hair-strong:rgba(255,255,255,.12);
     /* signal — scarce by design. gold flags a PR, fail flags a miss */
     --signal:#6EE7B7; --signal-ink:#04140d;
     --gold:#f5a623; --fail:#ef6f6a;
@@ -94,7 +94,7 @@
   .daydots .dd.miss { border-color:var(--fail); }
 
   .dayhead { display:flex; align-items:flex-end; gap:12px; margin-top:14px; }
-  .daytitle { font-family:var(--serif); font-style:normal; font-weight:500; font-size:32px; line-height:1; letter-spacing:-0.015em; }
+  .daytitle { font-family:var(--sans); font-weight:800; font-size:34px; line-height:1; letter-spacing:-0.02em; }
   .dayheadRight { margin-left:auto; display:flex; align-items:center; gap:10px; }
   .settingsBtn { width:32px; height:32px; flex:none; align-self:center; margin-bottom:3px; border-radius:50%; border:2px solid var(--hair-strong); border-bottom-width:4px; transform-origin:bottom; background:var(--e2); color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:color var(--d2) var(--ease-out), border-color var(--d2) var(--ease-out), transform var(--d1) var(--spring), border-bottom-width var(--d1) var(--spring); }
   .settingsBtn:hover { color:var(--text); border-color:var(--muted); }
@@ -160,13 +160,15 @@
      Ticks light up left-to-right as sets log; a bright index line marks
      the live boundary. Built with a CSS mask, no per-tick DOM needed. */
   .progress { margin-top:20px; }
-  .ruler { position:relative; height:20px; }
-  .rulerTrack { position:absolute; inset:0; top:7px; height:6px; border-radius:3px; background-image:repeating-linear-gradient(90deg, rgba(255,255,255,.10) 0 1.5px, transparent 1.5px calc(100%/38)); background-color:rgba(255,255,255,.03); }
-  .rulerFill { position:absolute; inset:0; top:7px; height:6px; border-radius:3px 0 0 3px; overflow:hidden; width:0%; transition:width var(--d4) var(--ease-momentum); }
-  .rulerFill::before { content:''; position:absolute; inset:0; width:10000%; background-image:repeating-linear-gradient(90deg, var(--signal) 0 1.5px, rgba(167,243,208,.65) 1.5px calc(100%/380)); }
-  .rulerNeedle { position:absolute; top:0; width:2px; height:20px; background:#fff; border-radius:2px; box-shadow:0 0 10px 2px rgba(110,231,183,.85), 0 0 22px 6px rgba(110,231,183,.35); transform:translateX(-1px); transition:left var(--d4) var(--ease-momentum); }
-  .rulerFill.pulse { animation:rulerPulse .6s var(--ease-out); }
-  @keyframes rulerPulse { 0% { filter:brightness(1); } 35% { filter:brightness(1.5); } 100% { filter:brightness(1); } }
+  .progress { display:flex; align-items:center; gap:16px; }
+  .progRing { position:relative; width:72px; height:72px; flex:none; }
+  .progRing svg { width:100%; height:100%; transform:rotate(-90deg); }
+  .prTrack { fill:none; stroke:var(--hair-strong); stroke-width:6; }
+  .prFill { fill:none; stroke:var(--signal); stroke-width:6; stroke-linecap:round; stroke-dasharray:188.5; stroke-dashoffset:188.5; transition:stroke-dashoffset var(--d4) var(--ease-momentum); }
+  .prFill.pulse { animation:rulerPulse .6s var(--ease-out); }
+  @keyframes rulerPulse { 0% { filter:brightness(1); } 35% { filter:brightness(1.6); } 100% { filter:brightness(1); } }
+  .prPct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--sans); font-weight:800; font-size:17px; letter-spacing:-0.02em; color:var(--text); }
+  .progMeta { flex:1; min-width:0; }
   .plabel { font-family:var(--mono); font-size:12.5px; color:var(--muted); margin-top:12px; letter-spacing:.01em; }
   .plabel b { color:var(--text); font-weight:700; }
   .odo { display:inline-flex; }
@@ -403,7 +405,7 @@
   .calMonths { display:grid; gap:3px; margin-bottom:4px; height:12px; }
   .calMonths span { font-family:var(--mono); font-size:9px; color:var(--muted); white-space:nowrap; overflow:visible; }
   .cal { display:grid; grid-auto-flow:column; grid-template-rows:repeat(7,13px); gap:3px; }
-  .cal .cd { width:13px; height:13px; border-radius:3px; background:var(--e2); border:1px solid var(--hair); cursor:default; animation:calIn .3s var(--ease-out) backwards; transition:opacity var(--d2) var(--ease-out), transform var(--d1) var(--spring); }
+  .cal .cd { width:13px; height:13px; border-radius:50%; background:var(--e2); border:1px solid var(--hair); cursor:default; animation:calIn .3s var(--ease-out) backwards; transition:opacity var(--d2) var(--ease-out), transform var(--d1) var(--spring); }
   .cal .cd.pad { background:transparent; border-color:transparent; animation:none; }
   .cal .cd.l1 { background:color-mix(in srgb, var(--signal) 26%, var(--e2)); border-color:transparent; }
   .cal .cd.l2 { background:color-mix(in srgb, var(--signal) 50%, var(--e2)); border-color:transparent; }
@@ -419,7 +421,7 @@
   .calPop.on { opacity:1; transform:translateY(-50%) scale(1); }
   .calPop .cpCap { font-family:var(--mono); font-size:8px; color:var(--muted); margin-bottom:6px; }
   .calLegend { display:flex; align-items:center; justify-content:center; gap:4px; margin-top:12px; font-family:var(--mono); font-size:9px; color:var(--muted); }
-  .calLegend i { width:10px; height:10px; border-radius:3px; display:inline-block; font-style:normal; background:var(--e2); border:1px solid var(--hair); }
+  .calLegend i { width:10px; height:10px; border-radius:50%; display:inline-block; font-style:normal; background:var(--e2); border:1px solid var(--hair); }
   .calLegend i.l1 { background:color-mix(in srgb, var(--signal) 26%, var(--e2)); border-color:transparent; }
   .calLegend i.l2 { background:color-mix(in srgb, var(--signal) 50%, var(--e2)); border-color:transparent; }
   .calLegend i.l3 { background:color-mix(in srgb, var(--signal) 74%, var(--e2)); border-color:transparent; }
@@ -666,7 +668,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .sheet, .pop, .scrim, .menuPop, .menuPop button { animation-duration:.01ms !important; }
-    .pill.shimmer, .rulerFill.pulse, .restbar.over .restMid, .skeleton-shimmer::after { animation:none !important; }
+    .pill.shimmer, .prFill.pulse, .restbar.over .restMid, .skeleton-shimmer::after { animation:none !important; }
     .ex::after, .ovCard::after, .photoCard::after { transition:none !important; }
   }
 </style>
@@ -704,7 +706,10 @@
         </div>
       </div>
     </div>
-    <div class="progress" id="progress"><div class="ruler" id="ruler"><div class="rulerTrack"></div><div class="rulerFill" id="rulerFill"></div><div class="rulerNeedle" id="rulerNeedle"></div></div><div class="plabel" id="plabel"></div></div>
+    <div class="progress" id="progress">
+      <div class="progRing"><svg viewBox="0 0 72 72"><circle class="prTrack" cx="36" cy="36" r="30"/><circle class="prFill" id="prFill" cx="36" cy="36" r="30"/></svg><div class="prPct" id="prPct">0%</div></div>
+      <div class="progMeta"><div class="plabel" id="plabel"></div></div>
+    </div>
     <div class="wcSection" id="warmupSlot"></div>
     <div class="exwrap" id="exwrap"></div>
     <div class="wcSection" id="cooldownSlot"></div>
@@ -930,9 +935,10 @@ function renderProgress(){
   if(session.off){ prog.style.display='none'; return; }
   prog.style.display='';
   const t=sessionTotals(session); const pct = t.total? Math.round(t.logged/t.total*100):0;
-  const fill=$('#rulerFill'), needle=$('#rulerNeedle');
+  const fill=$('#prFill'); const CIRC=188.5;
   const prevPct=parseFloat(fill.dataset.pct||'0');
-  fill.style.width=pct+'%'; needle.style.left=pct+'%';
+  fill.style.strokeDashoffset=String(CIRC*(1-pct/100));
+  $('#prPct').textContent=pct+'%';
   if(pct>prevPct){ fill.classList.remove('pulse'); void fill.offsetWidth; fill.classList.add('pulse'); }
   fill.dataset.pct=String(pct);
   const lbl=$('#plabel');
