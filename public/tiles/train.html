@@ -31,7 +31,7 @@
     --mono:ui-monospace,"SF Mono",Menlo,"JetBrains Mono",monospace;
     /* spacing ladder — 4/8/12/16/24/32/48/64/96 */
     --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px; --sp6:32px; --sp7:48px; --sp8:64px; --sp9:96px;
-    --r-sm:9px; --r-md:14px; --r-lg:20px; --r-pill:999px;
+    --r-sm:10px; --r-md:16px; --r-lg:22px; --r-pill:999px;
     /* motion — one momentum family. out = ui settling; spring = tactile
        taps; cinematic = anything that takes over the screen */
     --ease-out:cubic-bezier(.16,1,.3,1);
@@ -227,9 +227,9 @@
   .exEye { flex:none; display:inline-flex; align-items:center; justify-content:center; background:none; border:none; cursor:pointer; color:var(--muted); width:26px; height:26px; transition:color var(--d2); }
   .exEye:hover { color:var(--signal); }
   .exEye svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.5; }
-  .exName { font-family:var(--sans); font-weight:600; font-size:17px; line-height:1.2; letter-spacing:-0.01em; color:var(--text); flex:1; min-width:0; border:none; background:none; text-align:left; cursor:pointer; padding:0; display:inline-flex; align-items:baseline; gap:7px; word-break:break-word; }
+  .exName { font-family:var(--sans); font-weight:700; font-size:17px; line-height:1.2; letter-spacing:-0.015em; color:var(--text); flex:1; min-width:0; border:none; background:none; text-align:left; cursor:pointer; padding:0; display:inline-flex; align-items:baseline; gap:7px; word-break:break-word; }
   .exName:hover .nameTxt { text-decoration:underline; text-decoration-color:rgba(110,231,183,.5); text-underline-offset:3px; }
-  .exInfo { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; font-family:var(--serif); font-size:11px; font-weight:600; color:var(--signal); background:rgba(110,231,183,.06); border:1px solid rgba(110,231,183,.25); border-radius:50%; line-height:1; align-self:center; flex:none; }
+  .exInfo { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; font-family:var(--sans); font-size:10.5px; font-weight:800; color:var(--signal); background:rgba(110,231,183,.06); border:1px solid rgba(110,231,183,.25); border-radius:50%; line-height:1; align-self:center; flex:none; }
   .pinBtn { flex:none; background:none; border:none; cursor:pointer; color:rgba(255,255,255,.2); font-size:16px; line-height:1; padding:4px; transition:color var(--d2), transform var(--d1) var(--spring); }
   .pinBtn:hover { color:var(--muted); } .pinBtn:active { transform:scale(.85); }
   .pinBtn.on { color:var(--gold); }
@@ -337,7 +337,7 @@
   .restPanel { text-align:center; padding:38px 16px 30px; }
   .restPanel .moon { width:44px; height:44px; margin:0 auto; color:var(--muted); }
   .restPanel .moon svg { width:100%; height:100%; fill:currentColor; }
-  .restPanel h3 { font-family:var(--serif); font-weight:500; font-size:25px; margin:16px 0 0; }
+  .restPanel h3 { font-family:var(--sans); font-weight:800; font-size:25px; letter-spacing:-0.015em; margin:16px 0 0; }
   .restPanel p { font-size:14px; line-height:1.6; color:var(--muted-2); max-width:340px; margin:12px auto 0; }
   .restPanel .undo { margin-top:18px; background:none; border:none; color:var(--signal); font-weight:600; font-size:14px; cursor:pointer; }
 
@@ -468,7 +468,7 @@
   @keyframes popIn { to { opacity:1; transform:none; } }
   .pop::before { content:''; position:absolute; left:16px; right:16px; top:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent); }
   .popHead { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-  .popTitle { font-family:var(--serif); font-weight:500; font-size:26px; line-height:1.1; letter-spacing:-0.01em; margin-top:6px; }
+  .popTitle { font-family:var(--sans); font-weight:800; font-size:26px; line-height:1.1; letter-spacing:-0.02em; margin-top:6px; }
   .popX { background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; flex:none; transition:color var(--d2), transform var(--d1) var(--spring); }
   .popX svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; }
   .popX:hover { color:var(--text); }
@@ -593,7 +593,7 @@
   .celebrate.on .burst { transform:scale(1); }
   .celebrate .bstar { width:70px; height:70px; margin:0 auto; }
   .celebrate .bstar svg { width:100%; height:100%; fill:var(--gold); filter:drop-shadow(0 0 22px rgba(245,166,35,.5)); }
-  .celebrate .ch1 { font-family:var(--serif); font-weight:500; font-size:27px; margin-top:16px; color:var(--gold); }
+  .celebrate .ch1 { font-family:var(--sans); font-weight:800; font-size:27px; letter-spacing:-0.015em; margin-top:16px; color:var(--gold); }
   .celebrate .ch2 { font-size:15px; font-weight:500; margin-top:10px; line-height:1.55; }
   .celebrate .ch2 .goal { color:var(--gold); font-weight:700; }
   .celebrate .tap { color:var(--muted); font-size:12px; margin-top:20px; }
@@ -635,7 +635,7 @@
   .cvClose:hover { color:var(--text); background:var(--e4); }
   .cvClose svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; }
   .cvHead { text-align:center; padding:0 40px 14px; flex:none; }
-  .cvTitle { font-family:var(--serif); font-weight:500; font-size:21px; }
+  .cvTitle { font-family:var(--sans); font-weight:800; font-size:21px; letter-spacing:-0.015em; }
   .cvStatus { display:flex; align-items:center; justify-content:center; gap:2px; font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:5px; min-height:14px; }
   .cvWave { display:none; gap:3px; align-items:center; height:14px; margin-left:8px; }
   .coachOverlay.thinking .cvWave { display:flex; }
@@ -646,8 +646,8 @@
   .cvMsg { padding:11px 14px; border-radius:16px; font-size:14.5px; line-height:1.5; max-width:86%; opacity:0; transform:translateY(8px); animation:cvMsgIn var(--d3) var(--ease-out) forwards; font-family:var(--sans); }
   @keyframes cvMsgIn { to { opacity:1; transform:none; } }
   .cvMsg.user { align-self:flex-end; background:var(--signal); color:var(--signal-ink); border-bottom-right-radius:6px; font-weight:500; }
-  .cvMsg.ai { align-self:flex-start; background:var(--e3); border:1px solid var(--hair); color:var(--text); border-bottom-left-radius:6px; font-family:var(--serif); font-style:italic; }
-  .cvEmpty { margin:auto; text-align:center; color:var(--muted); font-family:var(--serif); font-style:italic; font-size:15px; max-width:300px; line-height:1.6; padding:0 20px; }
+  .cvMsg.ai { align-self:flex-start; background:var(--e3); border:1px solid var(--hair); color:var(--text); border-bottom-left-radius:6px; font-family:var(--sans); font-style:normal; }
+  .cvEmpty { margin:auto; text-align:center; color:var(--muted); font-family:var(--sans); font-weight:600; font-style:normal; font-size:15px; max-width:300px; line-height:1.6; padding:0 20px; }
   .cvInputRow { display:flex; align-items:center; gap:10px; margin:10px 16px calc(16px + env(safe-area-inset-bottom)); flex:none; background:var(--e3); border:1px solid var(--hair-strong); border-radius:999px; padding:6px 6px 6px 16px; transition:border-color var(--d2) var(--ease-out); }
   .cvInputRow:focus-within { border-color:var(--signal); }
   .cvInputRow input { flex:1; background:none; border:none; outline:none; color:var(--text); font:inherit; font-size:14.5px; padding:8px 0; }
