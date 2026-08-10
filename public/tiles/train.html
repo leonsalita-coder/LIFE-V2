@@ -94,7 +94,7 @@
   .daydots .dd.miss { border-color:var(--fail); }
 
   .dayhead { display:flex; align-items:flex-end; gap:12px; margin-top:14px; }
-  .daytitle { font-family:var(--sans); font-weight:800; font-size:34px; line-height:1; letter-spacing:-0.02em; }
+  .daytitle { font-family:var(--sans); font-weight:800; font-size:39px; line-height:.96; letter-spacing:-0.03em; text-shadow:0 2px 28px rgba(110,231,183,.16); }
   .dayheadRight { margin-left:auto; display:flex; align-items:center; gap:10px; }
   .settingsBtn { width:32px; height:32px; flex:none; align-self:center; margin-bottom:3px; border-radius:50%; border:2px solid var(--hair-strong); border-bottom-width:4px; transform-origin:bottom; background:var(--e2); color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:color var(--d2) var(--ease-out), border-color var(--d2) var(--ease-out), transform var(--d1) var(--spring), border-bottom-width var(--d1) var(--spring); }
   .settingsBtn:hover { color:var(--text); border-color:var(--muted); }
@@ -468,7 +468,7 @@
   @keyframes popIn { to { opacity:1; transform:none; } }
   .pop::before { content:''; position:absolute; left:16px; right:16px; top:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent); }
   .popHead { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-  .popTitle { font-family:var(--sans); font-weight:800; font-size:26px; line-height:1.1; letter-spacing:-0.02em; margin-top:6px; }
+  .popTitle { font-family:var(--sans); font-weight:800; font-size:27px; line-height:1.05; letter-spacing:-0.025em; margin-top:6px; }
   .popX { background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; flex:none; transition:color var(--d2), transform var(--d1) var(--spring); }
   .popX svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; }
   .popX:hover { color:var(--text); }
@@ -658,7 +658,7 @@
   .cvSend svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 
   @media (max-width:480px) {
-    .daytitle { font-size:27px; } .popTitle { font-size:23px; }
+    .daytitle { font-size:30px; } .popTitle { font-size:23px; }
     .exName { font-size:15.5px; }
     .pill { gap:8px; padding:11px 12px 11px 14px; } .pillValue { font-size:15px; }
     #restLabel { display:none; }
