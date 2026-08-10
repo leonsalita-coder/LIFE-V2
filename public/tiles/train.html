@@ -570,10 +570,12 @@
   .pbtn.danger { background:rgba(239,111,106,.1); border-color:color-mix(in srgb, var(--fail) 55%, black); color:#f4a09c; }
   .pbtn:disabled { opacity:.4; cursor:default; }
 
-  .menuPop { position:absolute; z-index:70; min-width:184px; background:var(--e3); border:1px solid var(--hair-strong); border-radius:13px; padding:6px; box-shadow:0 18px 50px rgba(0,0,0,.6); transform-origin:top right; opacity:0; transform:translateY(-8px) scale(.97); animation:menuDrop var(--d3) var(--ease-momentum) forwards; }
-  @keyframes menuDrop { to { opacity:1; transform:none; } }
-  .menuPop button { display:flex; align-items:center; gap:11px; width:100%; background:none; border:none; color:var(--text); font:inherit; font-size:14px; padding:11px 12px; border-radius:9px; cursor:pointer; text-align:left; transition:background var(--d2); }
+  .menuPop { position:absolute; z-index:70; min-width:184px; background:var(--e3); border:1px solid var(--hair-strong); border-radius:13px; padding:6px; box-shadow:0 18px 50px rgba(0,0,0,.6); transform-origin:top right; opacity:0; filter:blur(10px); transform:translateY(-5px) scale(.95); animation:menuDrop .5s var(--spring) forwards; }
+  @keyframes menuDrop { to { opacity:1; filter:blur(0px); transform:translateY(0) scale(1); } }
+  .menuPop button { display:flex; align-items:center; gap:11px; width:100%; background:none; border:none; color:var(--text); font:inherit; font-size:14px; padding:11px 12px; border-radius:9px; cursor:pointer; text-align:left; transition:background var(--d2), transform var(--d1) var(--spring); animation:menuItemIn .4s var(--ease-out) backwards; }
+  @keyframes menuItemIn { from { opacity:0; filter:blur(8px); transform:translateX(8px) scale(.96); } }
   .menuPop button:hover { background:var(--e4); }
+  .menuPop button:active { transform:scale(.96); }
   .menuPop button.danger { color:#f4a09c; }
   .menuPop button svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; flex:none; }
   .menuPop .sep { height:1px; background:var(--hair); margin:4px 2px; }
@@ -663,7 +665,7 @@
     .rail { padding-left:var(--sp4); padding-right:var(--sp4); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .sheet, .pop, .scrim, .menuPop { animation-duration:.01ms !important; }
+    .sheet, .pop, .scrim, .menuPop, .menuPop button { animation-duration:.01ms !important; }
     .pill.shimmer, .rulerFill.pulse, .restbar.over .restMid, .skeleton-shimmer::after { animation:none !important; }
     .ex::after, .ovCard::after, .photoCard::after { transition:none !important; }
   }
@@ -1777,6 +1779,7 @@ function openMenu(e, session, btn){
                : (hasNext ? '<button data-m="link">'+svg('<path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3"/>',' fill="none" stroke="currentColor"')+'Link with next (superset)</button>' : ''))
     + '<div class="sep"></div>'
     + '<button class="danger" data-m="remove">'+svg('<path d="M5 7h14M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3"/>',' fill="none" stroke="currentColor"')+'Remove from day</button>';
+  menu.querySelectorAll('button').forEach((b,i)=> b.style.animationDelay=(i*70)+'ms');
   // position near the button, clamped to viewport
   const mw=190; let left=Math.min(r.right-mw, window.innerWidth-mw-10); left=Math.max(10,left); let top=r.bottom+6;
   menu.style.left=left+'px'; menu.style.top=top+'px';
