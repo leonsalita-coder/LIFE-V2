@@ -70,6 +70,25 @@
         JS logic (state, calculations, event wiring) are untouched, so
         the tile still runs correctly — it just renders unstyled while
         we design each component fresh, one at a time. ============= */
+
+  /* ==== TOP STICKER — greeting + a note bar that flips through short,
+     real, day-dependent callouts (rest day, streak, a nudge, a PR),
+     color-coded by what kind of note it is. First rebuilt piece. ==== */
+  .topSticker { padding:calc(16px + env(safe-area-inset-top)) var(--sp5) 0; }
+  .stickerGreet { font-family:var(--sans); font-weight:800; font-size:22px; letter-spacing:-0.02em; color:var(--text); margin-bottom:11px; }
+  .noteBar { display:flex; align-items:stretch; gap:0; background:var(--e2); border:1px solid var(--hair); border-radius:var(--r-lg); padding:10px 2px; box-shadow:0 14px 30px -20px rgba(0,0,0,.7); }
+  .noteSlot { flex:1; min-width:0; height:16px; position:relative; overflow:hidden; perspective:220px; }
+  .noteDiv { width:1px; flex:none; background:var(--hair-strong); margin:1px 0; }
+  .noteCard { position:absolute; inset:0 7px; display:flex; align-items:center; gap:4px; font-family:var(--sans); font-size:10.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); transform-origin:50% 0%; transform:translateY(0) rotateX(0deg); opacity:1; transition:transform .48s var(--ease-momentum), opacity .38s var(--ease-momentum); }
+  .noteCard.entering { transform:translateY(65%) rotateX(75deg); opacity:0; }
+  .noteCard.leaving { transform:translateY(-65%) rotateX(-75deg); opacity:0; }
+  .noteDot { flex:none; width:4px; height:4px; border-radius:50%; background:currentColor; }
+  .noteEmo { flex:none; font-size:10.5px; line-height:1; }
+  .noteTxt { min-width:0; overflow:hidden; text-overflow:ellipsis; color:currentColor; }
+  .note-mint { color:var(--signal); }
+  .note-gold { color:var(--gold); }
+  .note-fail { color:var(--fail); }
+  .note-plain { color:var(--muted); }
 </style>
 </head>
 <body>
@@ -79,6 +98,11 @@
   <div class="wb-mist"></div>
   <div class="wb-particles"></div>
 </div>
+
+<header class="topSticker" id="topSticker">
+  <div class="stickerGreet" id="stickerGreet">Welcome Piglet</div>
+  <div class="noteBar" id="noteBar"></div>
+</header>
 
 <div class="rail" id="statusRail">
   <div class="railDate" id="railDate">—</div>
@@ -288,7 +312,69 @@ function dotsIcon(){ return '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="
 function gripIcon(){ return '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>'; }
 
 function render(){
-  renderDots(); renderHead(); renderProgress(); renderBody(); renderStreak(); renderRail(); renderHeroExtras(); saveState();
+  renderDots(); renderHead(); renderProgress(); renderBody(); renderStreak(); renderRail(); renderHeroExtras(); renderNoteBar(); saveState();
+}
+/* ---- top sticker note bar: 3 slots, each cycling on its own timer
+   through a pool of short, real, day-dependent callouts. Pool is
+   recomputed from live STATE every render; the running timers just
+   read the freshest pool each time they fire — no timer reset needed
+   on a normal re-render, so the flip cadence never stutters. */
+let NOTE_POOL = [{ emoji:'✦', text:'Ready when you are', type:'mint' }];
+const NOTE_SLOT_STATE = [-1,-1,-1];
+let NOTE_BAR_BUILT = false;
+function computeNotes(){
+  const notes = [];
+  const session = curSession();
+  if (session.off) {
+    notes.push({ emoji:'🌙', text:'Rest day', type:'mint' });
+  } else {
+    const totals = sessionTotals(session);
+    if (totals.total>0 && totals.logged===0) notes.push({ emoji:'⚠️', text:'Push hard today', type:'fail' });
+    else if (totals.total>0 && totals.logged<totals.total) notes.push({ emoji:'💪', text:(totals.total-totals.logged)+' to go', type:'mint' });
+    else if (totals.total>0 && totals.logged===totals.total) notes.push({ emoji:'✅', text:'Crushed it', type:'gold' });
+  }
+  const streak = currentStreak();
+  if (streak>=2) notes.push({ emoji:'🔥', text:streak+'d streak', type:'gold' });
+  const hasPR = (curSession().ex||[]).some(exHasPR);
+  if (hasPR) notes.push({ emoji:'🏆', text:'New PR', type:'gold' });
+  if (!notes.length) notes.push({ emoji:'✦', text:"Let's go", type:'mint' });
+  return notes;
+}
+function flipSlotTo(slotEl, note){
+  const old = slotEl.querySelector('.noteCard');
+  const next = document.createElement('div');
+  next.className = 'noteCard entering note-'+note.type;
+  next.innerHTML = '<span class="noteDot"></span><span class="noteEmo">'+note.emoji+'</span><span class="noteTxt">'+escapeHtml(note.text)+'</span>';
+  slotEl.appendChild(next);
+  if (old) old.classList.add('leaving');
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      next.classList.remove('entering');
+    });
+  });
+  setTimeout(()=>{ if (old && old.parentNode) old.remove(); }, 520);
+}
+function advanceNoteSlot(i){
+  const slotEl = $('#noteSlot'+i);
+  if (!slotEl || !NOTE_POOL.length) return;
+  NOTE_SLOT_STATE[i] = (NOTE_SLOT_STATE[i]+1) % NOTE_POOL.length;
+  flipSlotTo(slotEl, NOTE_POOL[NOTE_SLOT_STATE[i]]);
+}
+function renderNoteBar(){
+  const bar = $('#noteBar');
+  if (!bar) return;
+  NOTE_POOL = computeNotes();
+  if (!NOTE_BAR_BUILT) {
+    bar.innerHTML = [0,1,2].map(i=>'<div class="noteSlot" id="noteSlot'+i+'"></div>'+(i<2?'<div class="noteDiv"></div>':'')).join('');
+    NOTE_BAR_BUILT = true;
+    for (let i=0;i<3;i++){
+      NOTE_SLOT_STATE[i] = i % NOTE_POOL.length;
+      const slotEl = $('#noteSlot'+i);
+      const note = NOTE_POOL[NOTE_SLOT_STATE[i]];
+      slotEl.innerHTML = '<div class="noteCard note-'+note.type+'"><span class="noteDot"></span><span class="noteEmo">'+note.emoji+'</span><span class="noteTxt">'+escapeHtml(note.text)+'</span></div>';
+      setInterval(()=>advanceNoteSlot(i), 4200 + i*550);
+    }
+  }
 }
 /* ---- hero extras: session number, the streak/volume caption under the
    headline, and the 3-up mini stat strip — all real arithmetic over data
